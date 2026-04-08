@@ -3,7 +3,6 @@ package com.springboot.MyTodoList.service;
 import com.springboot.MyTodoList.model.Proyecto;
 import com.springboot.MyTodoList.repository.ProyectoRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +25,10 @@ public class ProyectoService {
 
     public Optional<Proyecto> obtenerPorId(Long id) {
         return proyectoRepository.findById(id);
+    }
+
+    public List<Proyecto> obtenerPorEstatus(String estatus) {
+        return proyectoRepository.findByEstatus(estatus);
     }
 
     public void eliminar(Long id) {

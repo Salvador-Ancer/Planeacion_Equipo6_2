@@ -21,10 +21,10 @@ public class Proyecto {
     private Date fechaFin;
 
     @Column(name = "ESTATUS")
-    private Integer estatus;
+    private String estatus;
 
-    @Column(name = "DESCRIPTION")
-    private String description;
+    @Column(name = "DESCRIPCION")
+    private String descripcion;
 
     // getters y setters
     public Long getId() { return id; }
@@ -39,9 +39,9 @@ public class Proyecto {
     public Date getFechaFin() { return fechaFin; }
     public void setFechaFin(Date fechaFin) { this.fechaFin = fechaFin; }
 
-    public Integer getEstatus() { return estatus; }
-    public void setEstatus(Integer estatus) { this.estatus = estatus; }
+    public String getEstatus() { return estatus; }
+    public void setEstatus(String estatus) { this.estatus = estatus; }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }

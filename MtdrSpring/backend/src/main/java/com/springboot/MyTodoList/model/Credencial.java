@@ -8,11 +8,12 @@ import java.util.Date;
 public class Credencial {
 
     @Id
-    @Column(name = "PASSWORD")
-    private String password;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "CREDENCIAL_ID")
+    private Long id;
 
-    @Column(name = "OAUTH_ID")
-    private Long oauthId;
+    @Column(name = "HASH_PASSWORD")
+    private String hashPassword;
 
     @Column(name = "EMAIL")
     private String email;
@@ -23,12 +24,27 @@ public class Credencial {
     @Column(name = "ACTIVO")
     private Integer activo;
 
-    // getters y setters
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    @Column(name = "USER_ID")
+    private Long userId;
 
-    public Long getOauthId() { return oauthId; }
-    public void setOauthId(Long oauthId) { this.oauthId = oauthId; }
+    @Column(name = "OAUTH_TOKEN")
+    private String oauthToken;
+
+    @Column(name = "REFRESH_TOKEN")
+    private String refreshToken;
+
+    @Column(name = "TOKEN_EXPIRY")
+    private Date tokenExpiry;
+
+    @Column(name = "ULTIMO_LOGIN")
+    private Date ultimoLogin;
+
+    // getters y setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getHashPassword() { return hashPassword; }
+    public void setHashPassword(String hashPassword) { this.hashPassword = hashPassword; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -38,4 +54,19 @@ public class Credencial {
 
     public Integer getActivo() { return activo; }
     public void setActivo(Integer activo) { this.activo = activo; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    public String getOauthToken() { return oauthToken; }
+    public void setOauthToken(String oauthToken) { this.oauthToken = oauthToken; }
+
+    public String getRefreshToken() { return refreshToken; }
+    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+
+    public Date getTokenExpiry() { return tokenExpiry; }
+    public void setTokenExpiry(Date tokenExpiry) { this.tokenExpiry = tokenExpiry; }
+
+    public Date getUltimoLogin() { return ultimoLogin; }
+    public void setUltimoLogin(Date ultimoLogin) { this.ultimoLogin = ultimoLogin; }
 }

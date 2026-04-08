@@ -20,11 +20,14 @@ public class Sprint {
     @Column(name = "FECHA_FIN")
     private Date fechaFin;
 
-    @Column(name = "STATUS")
-    private Integer status;
+    @Column(name = "ESTATUS")
+    private String estatus;
 
     @Column(name = "OBJETIVO")
     private String objetivo;
+
+    @Column(name = "PROYECTO_ID")
+    private Long proyectoId;
 
     // getters y setters
     public Long getId() { return id; }
@@ -39,9 +42,12 @@ public class Sprint {
     public Date getFechaFin() { return fechaFin; }
     public void setFechaFin(Date fechaFin) { this.fechaFin = fechaFin; }
 
-    public Integer getStatus() { return status; }
-    public void setStatus(Integer status) { this.status = status; }
+    public String getEstatus() { return estatus; }
+    public void setEstatus(String estatus) { this.estatus = estatus; }
 
     public String getObjetivo() { return objetivo; }
     public void setObjetivo(String objetivo) { this.objetivo = objetivo; }
+
+    public Long getProyectoId() { return proyectoId; }
+    public void setProyectoId(Long proyectoId) { this.proyectoId = proyectoId; }
 }

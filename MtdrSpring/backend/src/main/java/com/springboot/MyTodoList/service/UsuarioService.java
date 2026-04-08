@@ -3,7 +3,6 @@ package com.springboot.MyTodoList.service;
 import com.springboot.MyTodoList.model.Usuario;
 import com.springboot.MyTodoList.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +29,10 @@ public class UsuarioService {
 
     public Usuario obtenerPorEmail(String email) {
         return usuarioRepository.findByEmail(email);
+    }
+
+    public Optional<Usuario> obtenerPorTelegram(Long telegramId) {
+        return usuarioRepository.findByTelegramId(telegramId);
     }
 
     public void eliminar(Long id) {

@@ -3,7 +3,6 @@ package com.springboot.MyTodoList.service;
 import com.springboot.MyTodoList.model.Tarea;
 import com.springboot.MyTodoList.repository.TareaRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -28,12 +27,28 @@ public class TareaService {
         return tareaRepository.findById(id);
     }
 
-    public List<Tarea> obtenerPorEstatus(Integer estatus) {
+    public List<Tarea> obtenerPorEstatus(String estatus) {
         return tareaRepository.findByEstatus(estatus);
     }
 
     public List<Tarea> obtenerPorPrioridad(String prioridad) {
         return tareaRepository.findByPrioridad(prioridad);
+    }
+
+    public List<Tarea> obtenerPorSprint(Long sprintId) {
+        return tareaRepository.findBySprintId(sprintId);
+    }
+
+    public List<Tarea> obtenerPorProyecto(Long proyectoId) {
+        return tareaRepository.findByProyectoId(proyectoId);
+    }
+
+    public List<Tarea> obtenerPorAsignado(Long userId) {
+        return tareaRepository.findByAsignadoA(userId);
+    }
+
+    public List<Tarea> obtenerActivas() {
+        return tareaRepository.findByBorrado(0);
     }
 
     public void eliminar(Long id) {

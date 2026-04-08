@@ -3,7 +3,6 @@ package com.springboot.MyTodoList.service;
 import com.springboot.MyTodoList.model.Kpi;
 import com.springboot.MyTodoList.repository.KpiRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +25,18 @@ public class KpiService {
 
     public Optional<Kpi> obtenerPorId(Long id) {
         return kpiRepository.findById(id);
+    }
+
+    public List<Kpi> obtenerPorProyecto(Long proyectoId) {
+        return kpiRepository.findByProyectoId(proyectoId);
+    }
+
+    public List<Kpi> obtenerPorSprint(Long sprintId) {
+        return kpiRepository.findBySprintId(sprintId);
+    }
+
+    public List<Kpi> obtenerPorUsuario(Long userId) {
+        return kpiRepository.findByUserId(userId);
     }
 
     public void eliminar(Long id) {

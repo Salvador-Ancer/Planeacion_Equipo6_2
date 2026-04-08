@@ -14,8 +14,8 @@ public class Kpi {
     @Column(name = "NOMBRE")
     private String nombre;
 
-    @Column(name = "DESCRIPTION")
-    private String description;
+    @Column(name = "DESCRIPCION")
+    private String descripcion;
 
     @Column(name = "VALOR_ACTUAL")
     private Double valorActual;
@@ -29,6 +29,27 @@ public class Kpi {
     @Column(name = "FECHA_MEDICION")
     private Date fechaMedicion;
 
+    @Column(name = "PROYECTO_ID")
+    private Long proyectoId;
+
+    @Column(name = "SPRINT_ID")
+    private Long sprintId;
+
+    @Column(name = "USER_ID")
+    private Long userId;
+
+    @Column(name = "CREADO_EN")
+    private Date creadoEn;
+
+    @Column(name = "CREADO_POR")
+    private Long creadoPor;
+
+    @Column(name = "ACTUALIZADO_EN")
+    private Date actualizadoEn;
+
+    @Column(name = "ACTUALIZADO_POR")
+    private Long actualizadoPor;
+
     // getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -36,8 +57,8 @@ public class Kpi {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
     public Double getValorActual() { return valorActual; }
     public void setValorActual(Double valorActual) { this.valorActual = valorActual; }
@@ -50,4 +71,25 @@ public class Kpi {
 
     public Date getFechaMedicion() { return fechaMedicion; }
     public void setFechaMedicion(Date fechaMedicion) { this.fechaMedicion = fechaMedicion; }
+
+    public Long getProyectoId() { return proyectoId; }
+    public void setProyectoId(Long proyectoId) { this.proyectoId = proyectoId; }
+
+    public Long getSprintId() { return sprintId; }
+    public void setSprintId(Long sprintId) { this.sprintId = sprintId; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    public Date getCreadoEn() { return creadoEn; }
+    public void setCreadoEn(Date creadoEn) { this.creadoEn = creadoEn; }
+
+    public Long getCreadoPor() { return creadoPor; }
+    public void setCreadoPor(Long creadoPor) { this.creadoPor = creadoPor; }
+
+    public Date getActualizadoEn() { return actualizadoEn; }
+    public void setActualizadoEn(Date actualizadoEn) { this.actualizadoEn = actualizadoEn; }
+
+    public Long getActualizadoPor() { return actualizadoPor; }
+    public void setActualizadoPor(Long actualizadoPor) { this.actualizadoPor = actualizadoPor; }
 }
