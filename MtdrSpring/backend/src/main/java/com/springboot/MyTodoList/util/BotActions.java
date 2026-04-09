@@ -146,7 +146,7 @@ public class BotActions {
                 sb.append("  Story Points: ").append(t.getStoryPoints()).append("\n");
             if (t.getFechaVencimiento() != null) {
                 boolean vencida = t.getFechaVencimiento().before(new Date())
-                    && !"COMPLETADO".equalsIgnoreCase(estado);
+                    && !"Completado".equalsIgnoreCase(estado);
                 sb.append("  Vence: ").append(t.getFechaVencimiento());
                 if (vencida) sb.append(" [VENCIDA]");
                 sb.append("\n");
@@ -234,18 +234,18 @@ public class BotActions {
                 .collect(Collectors.toList());
 
             long completadas = tareasSprint.stream()
-                .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
             long enProgreso = tareasSprint.stream()
-                .filter(t -> "EN_PROGRESO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
             long pendientes = tareasSprint.stream()
-                .filter(t -> "PENDIENTE".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Backlog".equalsIgnoreCase(t.getEstatus())).count();
             long bloqueadas = tareasSprint.stream()
-                .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
 
             int spTotal = tareasSprint.stream()
                 .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
             int spCompletados = tareasSprint.stream()
-                .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus()))
+                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus()))
                 .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
 
             double avance = tareasSprint.size() > 0
@@ -273,14 +273,14 @@ public class BotActions {
         Date ahora = new Date();
 
         List<Tarea> bloqueadas = todas.stream()
-            .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus()))
+            .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus()))
             .collect(Collectors.toList());
 
         List<Tarea> vencidas = todas.stream()
             .filter(t -> t.getFechaVencimiento() != null
                 && t.getFechaVencimiento().before(ahora)
-                && !"COMPLETADO".equalsIgnoreCase(t.getEstatus())
-                && !"BLOQUEADO".equalsIgnoreCase(t.getEstatus()))
+                && !"Completado".equalsIgnoreCase(t.getEstatus())
+                && !"Bloqueado".equalsIgnoreCase(t.getEstatus()))
             .collect(Collectors.toList());
 
         if (bloqueadas.isEmpty() && vencidas.isEmpty()) {
@@ -338,17 +338,17 @@ public class BotActions {
 
         long total = tareas.size();
         long completadas = tareas.stream()
-            .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus())).count();
+            .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
         long enProgreso = tareas.stream()
-            .filter(t -> "EN_PROGRESO".equalsIgnoreCase(t.getEstatus())).count();
+            .filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
         long bloqueadas = tareas.stream()
-            .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus())).count();
+            .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
 
         Date ahora = new Date();
         long vencidas = tareas.stream()
             .filter(t -> t.getFechaVencimiento() != null
                 && t.getFechaVencimiento().before(ahora)
-                && !"COMPLETADO".equalsIgnoreCase(t.getEstatus()))
+                && !"Completado".equalsIgnoreCase(t.getEstatus()))
             .count();
 
         double tasaCompletado = total > 0 ? ((double) completadas / total) * 100 : 0;
@@ -356,7 +356,7 @@ public class BotActions {
         int spTotal = tareas.stream()
             .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
         int spCompletados = tareas.stream()
-            .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus()))
+            .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus()))
             .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
 
         double horasEst = tareas.stream()
@@ -417,28 +417,28 @@ public class BotActions {
                 .collect(Collectors.toList());
 
             long completadas = tareas.stream()
-                .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
             long enProgreso = tareas.stream()
-                .filter(t -> "EN_PROGRESO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
             long pendientes = tareas.stream()
-                .filter(t -> "PENDIENTE".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Backlog".equalsIgnoreCase(t.getEstatus())).count();
             long bloqueadas = tareas.stream()
-                .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus())).count();
+                .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
 
             Date ahora = new Date();
             List<Tarea> tareasBloqueadasNombres = tareas.stream()
-                .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus()))
+                .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus()))
                 .collect(Collectors.toList());
             List<Tarea> tareasVencidas = tareas.stream()
                 .filter(t -> t.getFechaVencimiento() != null
                     && t.getFechaVencimiento().before(ahora)
-                    && !"COMPLETADO".equalsIgnoreCase(t.getEstatus()))
+                    && !"Completado".equalsIgnoreCase(t.getEstatus()))
                 .collect(Collectors.toList());
 
             int spTotal = tareas.stream()
                 .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
             int spCompletados = tareas.stream()
-                .filter(t -> "COMPLETADO".equalsIgnoreCase(t.getEstatus()))
+                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus()))
                 .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
             double horasEst = tareas.stream()
                 .mapToDouble(t -> t.getHorasEstimadas() != null ? t.getHorasEstimadas() : 0).sum();
