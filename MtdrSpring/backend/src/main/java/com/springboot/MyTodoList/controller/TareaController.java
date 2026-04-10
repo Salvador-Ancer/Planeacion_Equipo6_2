@@ -35,7 +35,7 @@ public class TareaController {
 
     // GET /tareas/estatus/{estatus} — filtrar por estatus
     @GetMapping("/estatus/{estatus}")
-    public List<Tarea> getByEstatus(@PathVariable Integer estatus) {
+    public List<Tarea> getByEstatus(@PathVariable String estatus) {
         return tareaService.obtenerPorEstatus(estatus);
     }
 
