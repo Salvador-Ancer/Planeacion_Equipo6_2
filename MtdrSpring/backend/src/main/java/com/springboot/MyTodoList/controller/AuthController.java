@@ -40,10 +40,12 @@ public class AuthController {
 
         // Crear usuario
         Usuario usuario = new Usuario();
+        usuario.setId(System.currentTimeMillis());
         usuario.setFullName(request.getFullName());
         usuario.setEmail(request.getEmail());
         usuario.setRol(request.getRol() != null ? request.getRol() : "Developer");
         Usuario savedUsuario = usuarioService.guardar(usuario);
+        System.out.println(">>> Usuario guardado con ID: " + savedUsuario.getId()); 
 
         // Crear credencial con password hasheado
         Credencial credencial = new Credencial();
@@ -53,6 +55,8 @@ public class AuthController {
         credencial.setFechaCreacion(new Date());
         credencial.setActivo(1);
         credencialService.guardar(credencial);
+        System.out.println(">>> Credencial guardada con USER_ID: " + credencial.getUserId());
+
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse("Usuario registrado exitosamente", true,
