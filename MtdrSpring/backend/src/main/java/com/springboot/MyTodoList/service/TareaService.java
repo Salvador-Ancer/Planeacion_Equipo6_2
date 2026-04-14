@@ -48,7 +48,7 @@ public class TareaService {
     }
 
     public List<Tarea> obtenerActivas() {
-        return tareaRepository.findByBorrado(0);
+        return tareaRepository.findActivas();
     }
 
     public void eliminar(Long id) {

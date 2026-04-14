@@ -269,7 +269,15 @@ public class BotActions {
                 || requestText.equals(BotLabels.BLOQUEOS.getLabel())) || exit)
             return;
 
-        List<Tarea> todas = tareaService.obtenerActivas();
+        List<Tarea> todas;
+        try {
+            todas = tareaService.obtenerActivas();
+        } catch (Exception e) {
+            logger.error("Error en fnBloqueos al obtener tareas: {}", e.getMessage(), e);
+            BotHelper.sendMessageToTelegram(chatId, "Error al obtener tareas: " + e.getMessage(), telegramClient);
+            exit = true;
+            return;
+        }
         Date ahora = new Date();
 
         List<Tarea> bloqueadas = todas.stream()
