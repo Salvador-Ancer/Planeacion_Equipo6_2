@@ -1,16 +1,31 @@
 package com.springboot.MyTodoList.util;
 
 public enum BotMessages {
-	
+
 	HELLO_MYTODO_BOT(
-	"Hello! I'm MyTodoList Bot!\nType a new todo item below and press the send button (blue arrow), or select an option below:"),
-	BOT_REGISTERED_STARTED("Bot registered and started succesfully!"),
-	ITEM_DONE("Item done! Select /todolist to return to the list of todo items, or /start to go to the main screen."), 
-	ITEM_UNDONE("Item undone! Select /todolist to return to the list of todo items, or /start to go to the main screen."), 
-	ITEM_DELETED("Item deleted! Select /todolist to return to the list of todo items, or /start to go to the main screen."),
-	TYPE_NEW_TODO_ITEM("Type a new todo item below and press the send button (blue arrow) on the rigth-hand side."),
-	NEW_ITEM_ADDED("New item added! Select /todolist to return to the list of todo items, or /start to go to the main screen."),
-	BYE("Bye! Select /start to resume!");
+		"Hola! Soy el bot de rendimiento de equipo Oracle.\n\n" +
+		"Puedes consultar:\n" +
+		"- Mis Tareas: tareas asignadas a ti\n" +
+		"- KPIs del Sprint: metricas del sprint activo\n" +
+		"- Sprint Activo: estado y avance del sprint\n" +
+		"- Bloqueos: tareas bloqueadas o vencidas\n" +
+		"- Rendimiento del Equipo: resumen de productividad\n" +
+		"- Analizar con IA: analisis inteligente con DeepSeek\n\n" +
+		"Selecciona una opcion:"),
+	BOT_REGISTERED_STARTED("Bot registrado y corriendo!"),
+	ITEM_DONE("Tarea marcada como completada. Usa /todolist para ver la lista o /start para el menu principal."),
+	ITEM_UNDONE("Tarea marcada como pendiente. Usa /todolist para ver la lista o /start para el menu principal."),
+	ITEM_DELETED("Tarea eliminada. Usa /todolist para ver la lista o /start para el menu principal."),
+	TYPE_NEW_TODO_ITEM("Escribe el nuevo elemento y presiona enviar."),
+	NEW_ITEM_ADDED("Elemento agregado. Usa /todolist para ver la lista o /start para el menu principal."),
+	BYE("Hasta luego! Usa /start para volver."),
+	USUARIO_NO_REGISTRADO("Tu usuario de Telegram no esta registrado en el sistema. Pide a tu administrador que registre tu Telegram ID."),
+	SIN_TAREAS("No tienes tareas asignadas en este momento."),
+	SIN_KPIS("No hay KPIs registrados para el sprint activo."),
+	SIN_SPRINT_ACTIVO("No hay un sprint activo en este momento."),
+	SIN_BLOQUEOS("No se detectaron bloqueos ni tareas vencidas. El equipo va bien!"),
+	ANALIZANDO("Analizando datos del equipo con IA... por favor espera."),
+	ERROR_LLM("Error al conectar con el servicio de IA. Intenta de nuevo mas tarde.");
 
 	private String message;
 
