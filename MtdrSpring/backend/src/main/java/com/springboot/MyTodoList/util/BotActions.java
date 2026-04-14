@@ -17,7 +17,9 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 public class BotActions {
 
     private static final Logger logger = LoggerFactory.getLogger(BotActions.class);
+    private static final Map<Long, UserSession> sessions = new ConcurrentHashMap<>();
 
     String requestText;
     long chatId;
@@ -102,6 +105,8 @@ public class BotActions {
                 .keyboardRow(new KeyboardRow(BotLabels.MIS_TAREAS.getLabel(), BotLabels.KPI_SPRINT.getLabel()))
                 .keyboardRow(new KeyboardRow(BotLabels.SPRINT_ACTIVO.getLabel(), BotLabels.BLOQUEOS.getLabel()))
                 .keyboardRow(new KeyboardRow(BotLabels.RENDIMIENTO_EQUIPO.getLabel(), BotLabels.ANALIZAR_IA.getLabel()))
+                .keyboardRow(new KeyboardRow(BotLabels.ADD_TAREA.getLabel(), BotLabels.ASIGNAR_SPRINT.getLabel()))
+                .keyboardRow(new KeyboardRow(BotLabels.COMPLETAR_TAREA.getLabel()))
                 .keyboardRow(new KeyboardRow(BotLabels.SHOW_MAIN_SCREEN.getLabel(), BotLabels.HIDE_MAIN_SCREEN.getLabel()))
                 .build()
         );
@@ -519,6 +524,274 @@ public class BotActions {
         }
 
         exit = true;
+    }
+
+    // --- Agregar tarea ---
+
+    public void fnAddTarea() {
+        boolean esComando = requestText.equals(BotCommands.ADD_TAREA.getCommand())
+            || requestText.equals(BotLabels.ADD_TAREA.getLabel());
+
+        UserSession session = sessions.computeIfAbsent(chatId, k -> new UserSession());
+
+        if (!esComando && session.getState() == UserSession.State.NONE) return;
+        if (exit) return;
+
+        Optional<Usuario> usuarioOpt = resolveUsuario();
+        if (usuarioOpt.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, BotMessages.USUARIO_NO_REGISTRADO.getMessage(), telegramClient);
+            session.reset();
+            exit = true;
+            return;
+        }
+
+        if (esComando && session.getState() == UserSession.State.NONE) {
+            session.setState(UserSession.State.ESPERANDO_NOMBRE_TAREA);
+            BotHelper.sendMessageToTelegram(chatId, "Nueva Tarea\n\nEscribe el nombre de la tarea:", telegramClient);
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_NOMBRE_TAREA) {
+            session.setNombreTarea(requestText);
+            session.setState(UserSession.State.ESPERANDO_HORAS_ESTIMADAS);
+            BotHelper.sendMessageToTelegram(chatId, "Horas estimadas (maximo 4):", telegramClient);
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_HORAS_ESTIMADAS) {
+            try {
+                double horas = Double.parseDouble(requestText.replace(",", "."));
+                if (horas > 4) {
+                    BotHelper.sendMessageToTelegram(chatId,
+                        "La tarea no puede tener mas de 4 horas estimadas (recomendacion Oracle).\n"
+                        + "Subdivide la tarea en partes mas pequenas.\n\nIngresa las horas (maximo 4):", telegramClient);
+                    exit = true;
+                    return;
+                }
+                session.setHorasEstimadas(horas);
+                session.setState(UserSession.State.ESPERANDO_PRIORIDAD);
+                BotHelper.sendMessageToTelegram(chatId, "Prioridad:",
+                    telegramClient,
+                    ReplyKeyboardMarkup.builder()
+                        .resizeKeyboard(true)
+                        .oneTimeKeyboard(true)
+                        .keyboardRow(new KeyboardRow("Alta", "Media"))
+                        .keyboardRow(new KeyboardRow("Baja"))
+                        .build());
+            } catch (NumberFormatException e) {
+                BotHelper.sendMessageToTelegram(chatId, "Ingresa un numero valido (ej: 2 o 1.5):", telegramClient);
+            }
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_PRIORIDAD) {
+            String prioridad = requestText.trim();
+            if (!prioridad.equals("Alta") && !prioridad.equals("Media") && !prioridad.equals("Baja")) {
+                BotHelper.sendMessageToTelegram(chatId, "Selecciona: Alta, Media o Baja", telegramClient);
+                exit = true;
+                return;
+            }
+
+            Usuario usuario = usuarioOpt.get();
+            List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+
+            Tarea tarea = new Tarea();
+            tarea.setNombre(session.getNombreTarea());
+            tarea.setHorasEstimadas(session.getHorasEstimadas());
+            tarea.setPrioridad(prioridad);
+            tarea.setEstatus("Backlog");
+            tarea.setAsignadoA(usuario.getId());
+            tarea.setCreadoPor(usuario.getId());
+            tarea.setFechaCreacion(new Date());
+            tarea.setBorrado(0);
+            if (!sprintsActivos.isEmpty())
+                tarea.setSprintId(sprintsActivos.get(0).getId());
+
+            // Generar ID manualmente
+            List<Tarea> todas = tareaService.obtenerTodas();
+            long maxId = todas.stream().mapToLong(t -> t.getId() != null ? t.getId() : 0).max().orElse(0);
+            tarea.setId(maxId + 1);
+
+            tareaService.guardar(tarea);
+            session.reset();
+
+            BotHelper.sendMessageToTelegram(chatId,
+                "Tarea creada!\n\n"
+                + "Nombre: " + tarea.getNombre() + "\n"
+                + "Horas estimadas: " + tarea.getHorasEstimadas() + "h\n"
+                + "Prioridad: " + tarea.getPrioridad() + "\n"
+                + "Estatus: Backlog\n"
+                + "ID: " + tarea.getId(),
+                telegramClient);
+            exit = true;
+        }
+    }
+
+    // --- Asignar tarea a sprint (marcar En Progreso) ---
+
+    public void fnAsignarSprint() {
+        boolean esComando = requestText.equals(BotCommands.ASIGNAR_SPRINT.getCommand())
+            || requestText.equals(BotLabels.ASIGNAR_SPRINT.getLabel());
+
+        UserSession session = sessions.computeIfAbsent(chatId, k -> new UserSession());
+
+        if (!esComando && session.getState() != UserSession.State.ESPERANDO_ID_COMPLETAR) {
+            // reusar estado para asignar sprint
+        }
+        if (exit) return;
+
+        if (!esComando) return;
+
+        Optional<Usuario> usuarioOpt = resolveUsuario();
+        if (usuarioOpt.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, BotMessages.USUARIO_NO_REGISTRADO.getMessage(), telegramClient);
+            exit = true;
+            return;
+        }
+
+        List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+        if (sprintsActivos.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, BotMessages.SIN_SPRINT_ACTIVO.getMessage(), telegramClient);
+            exit = true;
+            return;
+        }
+
+        Usuario usuario = usuarioOpt.get();
+        List<Tarea> misTareas = tareaService.obtenerPorAsignado(usuario.getId()).stream()
+            .filter(t -> (t.getBorrado() == null || t.getBorrado() == 0)
+                && "Backlog".equalsIgnoreCase(t.getEstatus()))
+            .collect(Collectors.toList());
+
+        if (misTareas.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, "No tienes tareas en Backlog para iniciar.", telegramClient);
+            exit = true;
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Tus tareas en Backlog:\n\n");
+        for (Tarea t : misTareas) {
+            sb.append("ID ").append(t.getId()).append(": ").append(t.getNombre())
+              .append(" [").append(t.getPrioridad()).append("]\n");
+        }
+        sb.append("\nResponde con el ID de la tarea a iniciar:");
+        BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
+        session.setState(UserSession.State.ESPERANDO_ID_COMPLETAR);
+        session.setTareaIdACompletar(-1L); // flag para saber que es asignar sprint
+        exit = true;
+    }
+
+    // --- Completar tarea ---
+
+    public void fnCompletarTarea() {
+        boolean esComando = requestText.equals(BotCommands.COMPLETAR_TAREA.getCommand())
+            || requestText.equals(BotLabels.COMPLETAR_TAREA.getLabel());
+
+        UserSession session = sessions.computeIfAbsent(chatId, k -> new UserSession());
+
+        if (!esComando && session.getState() != UserSession.State.ESPERANDO_ID_COMPLETAR
+                && session.getState() != UserSession.State.ESPERANDO_HORAS_REALES) return;
+        if (exit) return;
+
+        Optional<Usuario> usuarioOpt = resolveUsuario();
+        if (usuarioOpt.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, BotMessages.USUARIO_NO_REGISTRADO.getMessage(), telegramClient);
+            session.reset();
+            exit = true;
+            return;
+        }
+
+        if (esComando && session.getState() == UserSession.State.NONE) {
+            Usuario usuario = usuarioOpt.get();
+            List<Tarea> misTareas = tareaService.obtenerPorAsignado(usuario.getId()).stream()
+                .filter(t -> (t.getBorrado() == null || t.getBorrado() == 0)
+                    && !"Completado".equalsIgnoreCase(t.getEstatus()))
+                .collect(Collectors.toList());
+
+            if (misTareas.isEmpty()) {
+                BotHelper.sendMessageToTelegram(chatId, "No tienes tareas activas para completar.", telegramClient);
+                exit = true;
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder("Tus tareas activas:\n\n");
+            for (Tarea t : misTareas) {
+                sb.append("ID ").append(t.getId()).append(": ").append(t.getNombre())
+                  .append(" [").append(t.getEstatus()).append("]\n");
+            }
+            sb.append("\nResponde con el ID de la tarea completada:");
+            BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
+            session.setState(UserSession.State.ESPERANDO_ID_COMPLETAR);
+            session.setTareaIdACompletar(0L); // flag para completar
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_ID_COMPLETAR) {
+            try {
+                long tareaId = Long.parseLong(requestText.trim());
+                Optional<Tarea> tareaOpt = tareaService.obtenerPorId(tareaId);
+                if (tareaOpt.isEmpty()) {
+                    BotHelper.sendMessageToTelegram(chatId, "No encontre una tarea con ese ID. Intenta de nuevo:", telegramClient);
+                    exit = true;
+                    return;
+                }
+                Tarea tarea = tareaOpt.get();
+
+                // Si es asignar a sprint (flag -1)
+                if (session.getTareaIdACompletar() != null && session.getTareaIdACompletar() == -1L) {
+                    List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+                    tarea.setEstatus("En Progreso");
+                    tarea.setActualizadoEn(new Date());
+                    if (!sprintsActivos.isEmpty())
+                        tarea.setSprintId(sprintsActivos.get(0).getId());
+                    tareaService.guardar(tarea);
+                    session.reset();
+                    BotHelper.sendMessageToTelegram(chatId,
+                        "Tarea iniciada!\n\n"
+                        + "\"" + tarea.getNombre() + "\"\n"
+                        + "Estatus: En Progreso\n"
+                        + "Sprint: " + (sprintsActivos.isEmpty() ? "Sin sprint" : sprintsActivos.get(0).getNombre()),
+                        telegramClient);
+                    exit = true;
+                    return;
+                }
+
+                session.setTareaIdACompletar(tareaId);
+                session.setState(UserSession.State.ESPERANDO_HORAS_REALES);
+                BotHelper.sendMessageToTelegram(chatId, "Horas reales trabajadas en \"" + tarea.getNombre() + "\":", telegramClient);
+            } catch (NumberFormatException e) {
+                BotHelper.sendMessageToTelegram(chatId, "Ingresa un ID valido (numero):", telegramClient);
+            }
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_HORAS_REALES) {
+            try {
+                double horasReales = Double.parseDouble(requestText.replace(",", "."));
+                Optional<Tarea> tareaOpt = tareaService.obtenerPorId(session.getTareaIdACompletar());
+                if (tareaOpt.isPresent()) {
+                    Tarea tarea = tareaOpt.get();
+                    tarea.setEstatus("Completado");
+                    tarea.setHorasReales(horasReales);
+                    tarea.setActualizadoEn(new Date());
+                    tareaService.guardar(tarea);
+                    session.reset();
+                    BotHelper.sendMessageToTelegram(chatId,
+                        "Tarea completada!\n\n"
+                        + "\"" + tarea.getNombre() + "\"\n"
+                        + "Horas estimadas: " + (tarea.getHorasEstimadas() != null ? tarea.getHorasEstimadas() + "h" : "-") + "\n"
+                        + "Horas reales: " + horasReales + "h",
+                        telegramClient);
+                }
+            } catch (NumberFormatException e) {
+                BotHelper.sendMessageToTelegram(chatId, "Ingresa un numero valido (ej: 2 o 1.5):", telegramClient);
+            }
+            exit = true;
+        }
     }
 
     // --- Comandos legacy (TodoItem) ---
