@@ -22,6 +22,9 @@ public class Usuario {
     @Column(name = "TELEGRAM_ID")
     private Long telegramId;
 
+    @Column(name = "TELEFONO")
+    private String telefono;
+
     // getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -37,4 +40,7 @@ public class Usuario {
 
     public Long getTelegramId() { return telegramId; }
     public void setTelegramId(Long telegramId) { this.telegramId = telegramId; }
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
 }
