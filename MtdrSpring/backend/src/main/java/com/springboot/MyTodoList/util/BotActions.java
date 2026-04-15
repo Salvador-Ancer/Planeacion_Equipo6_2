@@ -256,13 +256,34 @@ public class BotActions {
             double avance = tareasSprint.size() > 0
                 ? ((double) completadas / tareasSprint.size()) * 100 : 0;
 
-            sb.append("\nTareas: ").append(tareasSprint.size())
-              .append(" total | Avance: ").append(String.format("%.0f", avance)).append("%\n");
-            sb.append("  Completadas: ").append(completadas).append("\n");
-            sb.append("  En progreso: ").append(enProgreso).append("\n");
-            sb.append("  Pendientes:  ").append(pendientes).append("\n");
-            sb.append("  Bloqueadas:  ").append(bloqueadas).append("\n");
-            sb.append("  Story Points: ").append(spCompletados).append("/").append(spTotal).append("\n");
+            sb.append("\nAvance: ").append(String.format("%.0f", avance)).append("%")
+              .append(" | ").append(completadas).append("/").append(tareasSprint.size()).append(" completadas\n");
+            sb.append("Completadas: ").append(completadas)
+              .append(" | En progreso: ").append(enProgreso)
+              .append(" | Backlog: ").append(pendientes)
+              .append(" | Bloqueadas: ").append(bloqueadas).append("\n");
+            sb.append("Story Points: ").append(spCompletados).append("/").append(spTotal).append("\n");
+
+            if (!tareasSprint.isEmpty()) {
+                sb.append("\nTAREAS:\n");
+                sb.append("--------------------------------\n");
+                for (Tarea t : tareasSprint) {
+                    String estatus = t.getEstatus() != null ? t.getEstatus() : "-";
+                    String prioridad = t.getPrioridad() != null ? "[" + t.getPrioridad().charAt(0) + "]" : "[-]";
+                    String developer = "-";
+                    if (t.getAsignadoA() != null) {
+                        Optional<Usuario> u = usuarioService.obtenerPorId(t.getAsignadoA());
+                        if (u.isPresent()) developer = u.get().getFullName();
+                    }
+                    String icono = "Completado".equalsIgnoreCase(estatus) ? "[OK]"
+                        : "En Progreso".equalsIgnoreCase(estatus) ? "[>>]"
+                        : "Bloqueado".equalsIgnoreCase(estatus) ? "[!]" : "[ ]";
+                    sb.append(icono).append(" ").append(prioridad).append(" ")
+                      .append(t.getNombre()).append("\n")
+                      .append("    ").append(estatus).append(" | ").append(developer).append("\n");
+                }
+                sb.append("--------------------------------\n");
+            }
         }
 
         BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
@@ -414,113 +435,92 @@ public class BotActions {
                 || requestText.equals(BotLabels.ANALIZAR_IA.getLabel())) || exit)
             return;
 
-        BotHelper.sendMessageToTelegram(chatId, BotMessages.ANALIZANDO.getMessage(), telegramClient);
+        try {
+            List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+            StringBuilder sb = new StringBuilder("Analisis del Equipo\n\n");
 
-        StringBuilder contexto = new StringBuilder();
-        List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+            if (sprintsActivos.isEmpty()) {
+                sb.append("No hay sprint activo en este momento.\n\n");
+                List<Tarea> todas = tareaService.obtenerActivas();
+                long bloqueadas = todas.stream()
+                    .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
+                sb.append("Tareas activas: ").append(todas.size()).append("\n");
+                sb.append("Bloqueadas: ").append(bloqueadas).append("\n");
+                sb.append("\nRecomendacion: Inicia un nuevo sprint para organizar el trabajo pendiente.");
+                BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
+                exit = true;
+                return;
+            }
 
-        if (!sprintsActivos.isEmpty()) {
             Sprint sprint = sprintsActivos.get(0);
-            contexto.append("SPRINT ACTIVO: ").append(sprint.getNombre()).append("\n");
-            if (sprint.getObjetivo() != null)
-                contexto.append("Objetivo: ").append(sprint.getObjetivo()).append("\n");
-
             List<Tarea> tareas = tareaService.obtenerPorSprint(sprint.getId()).stream()
                 .filter(t -> t.getBorrado() == null || t.getBorrado() == 0)
                 .collect(Collectors.toList());
 
-            long completadas = tareas.stream()
-                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
-            long enProgreso = tareas.stream()
-                .filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
-            long pendientes = tareas.stream()
-                .filter(t -> "Backlog".equalsIgnoreCase(t.getEstatus())).count();
-            long bloqueadas = tareas.stream()
-                .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
+            long completadas = tareas.stream().filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
+            long enProgreso = tareas.stream().filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
+            long pendientes = tareas.stream().filter(t -> "Backlog".equalsIgnoreCase(t.getEstatus())).count();
+            long bloqueadas = tareas.stream().filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
+            int total = tareas.size();
 
-            Date ahora = new Date();
-            List<Tarea> tareasBloqueadasNombres = tareas.stream()
-                .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus()))
-                .collect(Collectors.toList());
-            List<Tarea> tareasVencidas = tareas.stream()
-                .filter(t -> t.getFechaVencimiento() != null
-                    && t.getFechaVencimiento().before(ahora)
-                    && !"Completado".equalsIgnoreCase(t.getEstatus()))
-                .collect(Collectors.toList());
-
-            int spTotal = tareas.stream()
-                .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
-            int spCompletados = tareas.stream()
-                .filter(t -> "Completado".equalsIgnoreCase(t.getEstatus()))
-                .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0).sum();
             double horasEst = tareas.stream()
                 .mapToDouble(t -> t.getHorasEstimadas() != null ? t.getHorasEstimadas() : 0).sum();
             double horasReal = tareas.stream()
                 .mapToDouble(t -> t.getHorasReales() != null ? t.getHorasReales() : 0).sum();
 
-            contexto.append("\nTAREAS (total: ").append(tareas.size()).append(")\n");
-            contexto.append("  Completadas: ").append(completadas).append("\n");
-            contexto.append("  En progreso: ").append(enProgreso).append("\n");
-            contexto.append("  Pendientes: ").append(pendientes).append("\n");
-            contexto.append("  Bloqueadas: ").append(bloqueadas).append("\n");
-            contexto.append("  Vencidas sin completar: ").append(tareasVencidas.size()).append("\n");
-            contexto.append("  Story Points: ").append(spCompletados).append("/").append(spTotal).append("\n");
-            if (horasEst > 0)
-                contexto.append("  Horas estimadas/reales: ").append(horasEst).append("h / ").append(horasReal).append("h\n");
+            double pctCompletado = total > 0 ? (completadas * 100.0 / total) : 0;
 
-            if (!tareasBloqueadasNombres.isEmpty()) {
-                contexto.append("\nTAREAS BLOQUEADAS:\n");
-                tareasBloqueadasNombres.forEach(t ->
-                    contexto.append("  - ").append(t.getNombre())
-                        .append(" [").append(t.getPrioridad()).append("]\n"));
+            // 1) Resumen ejecutivo
+            sb.append("1. Resumen ejecutivo\n");
+            sb.append("El sprint \"").append(sprint.getNombre()).append("\" tiene ");
+            sb.append(total).append(" tareas: ").append(completadas).append(" completadas (")
+              .append(String.format("%.0f", pctCompletado)).append("%), ")
+              .append(enProgreso).append(" en progreso y ").append(pendientes).append(" pendientes. ");
+
+            if (horasEst > 0) {
+                double eficiencia = horasReal / horasEst * 100;
+                sb.append("Se han usado ").append(String.format("%.1f", horasReal))
+                  .append("h de ").append(String.format("%.1f", horasEst))
+                  .append("h estimadas (").append(String.format("%.0f", eficiencia)).append("%).\n\n");
+            } else {
+                sb.append("\n\n");
             }
 
-            if (!tareasVencidas.isEmpty()) {
-                contexto.append("\nTAREAS VENCIDAS:\n");
-                tareasVencidas.forEach(t ->
-                    contexto.append("  - ").append(t.getNombre())
-                        .append(" (vencio: ").append(t.getFechaVencimiento()).append(")\n"));
+            // 2) Riesgos
+            sb.append("2. Riesgos detectados\n");
+            if (bloqueadas > 0) {
+                sb.append("- ").append(bloqueadas).append(" tarea(s) bloqueada(s) que pueden retrasar el sprint.\n");
+                tareas.stream().filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus()))
+                    .forEach(t -> sb.append("  * ").append(t.getNombre()).append("\n"));
             }
-
-            List<Kpi> kpis = kpiService.obtenerPorSprint(sprint.getId());
-            if (!kpis.isEmpty()) {
-                contexto.append("\nKPIs:\n");
-                for (Kpi kpi : kpis) {
-                    double actual = kpi.getValorActual() != null ? kpi.getValorActual() : 0;
-                    double meta = kpi.getValorMeta() != null ? kpi.getValorMeta() : 0;
-                    double pct = meta > 0 ? (actual / meta) * 100 : 0;
-                    contexto.append("  - ").append(kpi.getNombre()).append(": ")
-                        .append(String.format("%.1f", actual)).append("/")
-                        .append(String.format("%.1f", meta))
-                        .append(" ").append(kpi.getUnidad() != null ? kpi.getUnidad() : "")
-                        .append(" (").append(String.format("%.0f", pct)).append("% del objetivo)\n");
-                }
+            if (pctCompletado < 30 && total > 3) {
+                sb.append("- Avance bajo (").append(String.format("%.0f", pctCompletado))
+                  .append("% completado). Riesgo de no terminar el sprint a tiempo.\n");
             }
-        } else {
-            List<Tarea> todas = tareaService.obtenerActivas();
-            contexto.append("No hay sprint activo.\n");
-            contexto.append("Tareas activas totales: ").append(todas.size()).append("\n");
-            long bloqueadas = todas.stream()
-                .filter(t -> "BLOQUEADO".equalsIgnoreCase(t.getEstatus())).count();
-            contexto.append("Bloqueadas: ").append(bloqueadas).append("\n");
-        }
+            if (horasEst > 0 && horasReal > horasEst * 1.2) {
+                sb.append("- Las horas reales superan las estimadas en mas del 20%. Revisar estimaciones.\n");
+            }
+            if (bloqueadas == 0 && pctCompletado >= 30) {
+                sb.append("- Sin riesgos criticos identificados en este momento.\n");
+            }
+            sb.append("\n");
 
-        String prompt = "Eres un asistente experto en gestion de proyectos de software para equipos de Oracle. "
-            + "Analiza los siguientes datos del equipo y responde en espanol con: "
-            + "1) Resumen ejecutivo del rendimiento (2-3 oraciones). "
-            + "2) Los 2-3 principales riesgos o bloqueos detectados. "
-            + "3) Tres recomendaciones concretas y accionables para mejorar la productividad. "
-            + "Se directo, usa numeros cuando puedas y se especifico.\n\n"
-            + "DATOS DEL EQUIPO:\n"
-            + contexto.toString();
+            // 3) Recomendaciones
+            sb.append("3. Recomendaciones\n");
+            if (bloqueadas > 0)
+                sb.append("- Resolver los bloqueos de forma prioritaria en la proxima reunion del equipo.\n");
+            if (pendientes > enProgreso * 2)
+                sb.append("- Hay muchas tareas en Backlog. Considera mover las mas prioritarias a En Progreso.\n");
+            if (horasEst > 0 && horasReal < horasEst * 0.5 && completadas < total)
+                sb.append("- El equipo va adelante en tiempo. Aprovecha para revisar la calidad del entregable.\n");
+            sb.append("- Mantener dailys cortos para detectar bloqueos rapidamente.\n");
+            if (completadas == total && total > 0)
+                sb.append("- Sprint completado al 100%. Excelente trabajo del equipo!\n");
 
-        try {
-            String rawResponse = deepSeekService.generateText(escaparParaJson(prompt));
-            String contenido = extraerContenidoLLM(rawResponse);
-            BotHelper.sendMessageToTelegram(chatId, "Analisis IA\n\n" + contenido, telegramClient);
+            BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
         } catch (Exception e) {
-            logger.error("Error llamando DeepSeek: {}", e.getMessage(), e);
-            BotHelper.sendMessageToTelegram(chatId, BotMessages.ERROR_LLM.getMessage(), telegramClient);
+            logger.error("Error en fnAnalizar: {}", e.getMessage(), e);
+            BotHelper.sendMessageToTelegram(chatId, "Error al generar el analisis. Intenta de nuevo.", telegramClient);
         }
 
         exit = true;
@@ -594,40 +594,104 @@ public class BotActions {
                 exit = true;
                 return;
             }
+            session.setPrioridad(prioridad);
 
             Usuario usuario = usuarioOpt.get();
-            List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+            boolean esDeveloper = "Developer".equalsIgnoreCase(usuario.getRol());
 
-            Tarea tarea = new Tarea();
-            tarea.setNombre(session.getNombreTarea());
-            tarea.setHorasEstimadas(session.getHorasEstimadas());
-            tarea.setPrioridad(prioridad);
-            tarea.setEstatus("Backlog");
-            tarea.setAsignadoA(usuario.getId());
-            tarea.setCreadoPor(usuario.getId());
-            tarea.setFechaCreacion(new Date());
-            tarea.setBorrado(0);
-            if (!sprintsActivos.isEmpty())
-                tarea.setSprintId(sprintsActivos.get(0).getId());
+            if (esDeveloper) {
+                // Developer: se asigna a sí mismo
+                crearTarea(session, usuario.getId(), usuario.getId());
+                session.reset();
+                exit = true;
+            } else {
+                // Admin/Scrum Master/Product Owner: elegir developer
+                List<Usuario> developers = usuarioService.obtenerDevelopers();
+                if (developers.isEmpty()) {
+                    BotHelper.sendMessageToTelegram(chatId, "No hay developers registrados.", telegramClient);
+                    session.reset();
+                    exit = true;
+                    return;
+                }
+                StringBuilder msg = new StringBuilder("Asignar a developer:\n\n");
+                for (Usuario dev : developers) {
+                    msg.append(dev.getId()).append(" - ").append(dev.getFullName()).append("\n");
+                }
+                msg.append("\nEscribe el numero del developer:");
 
-            // Generar ID manualmente
-            List<Tarea> todas = tareaService.obtenerTodas();
-            long maxId = todas.stream().mapToLong(t -> t.getId() != null ? t.getId() : 0).max().orElse(0);
-            tarea.setId(maxId + 1);
+                List<KeyboardRow> rows = new ArrayList<>();
+                for (Usuario dev : developers) {
+                    rows.add(new KeyboardRow(dev.getId() + " - " + dev.getFullName()));
+                }
+                BotHelper.sendMessageToTelegram(chatId, msg.toString(),
+                    telegramClient,
+                    ReplyKeyboardMarkup.builder()
+                        .resizeKeyboard(true)
+                        .oneTimeKeyboard(true)
+                        .keyboard(rows)
+                        .build());
+                session.setState(UserSession.State.ESPERANDO_DEVELOPER);
+                exit = true;
+            }
+            return;
+        }
 
-            tareaService.guardar(tarea);
+        if (session.getState() == UserSession.State.ESPERANDO_DEVELOPER) {
+            String input = requestText.trim();
+            Long devId = null;
+            // Acepta "3 - Juan Hernandez" o solo "3"
+            try {
+                devId = Long.parseLong(input.split(" ")[0]);
+            } catch (NumberFormatException e) {
+                BotHelper.sendMessageToTelegram(chatId, "Selecciona un developer de la lista.", telegramClient);
+                exit = true;
+                return;
+            }
+            Optional<Usuario> devOpt = usuarioService.obtenerPorId(devId);
+            if (devOpt.isEmpty() || !"Developer".equalsIgnoreCase(devOpt.get().getRol())) {
+                BotHelper.sendMessageToTelegram(chatId, "Developer no encontrado. Intenta de nuevo:", telegramClient);
+                exit = true;
+                return;
+            }
+            Usuario creador = usuarioOpt.get();
+            crearTarea(session, devId, creador.getId());
             session.reset();
-
-            BotHelper.sendMessageToTelegram(chatId,
-                "Tarea creada!\n\n"
-                + "Nombre: " + tarea.getNombre() + "\n"
-                + "Horas estimadas: " + tarea.getHorasEstimadas() + "h\n"
-                + "Prioridad: " + tarea.getPrioridad() + "\n"
-                + "Estatus: Backlog\n"
-                + "ID: " + tarea.getId(),
-                telegramClient);
             exit = true;
         }
+    }
+
+    private void crearTarea(UserSession session, Long asignadoA, Long creadoPor) {
+        List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
+        Tarea tarea = new Tarea();
+        tarea.setNombre(session.getNombreTarea());
+        tarea.setHorasEstimadas(session.getHorasEstimadas());
+        tarea.setPrioridad(session.getPrioridad());
+        tarea.setEstatus("Backlog");
+        tarea.setAsignadoA(asignadoA);
+        tarea.setCreadoPor(creadoPor);
+        tarea.setFechaCreacion(new Date());
+        tarea.setBorrado(0);
+        if (!sprintsActivos.isEmpty())
+            tarea.setSprintId(sprintsActivos.get(0).getId());
+
+        List<Tarea> todas = tareaService.obtenerTodas();
+        long maxId = todas.stream().mapToLong(t -> t.getId() != null ? t.getId() : 0).max().orElse(0);
+        tarea.setId(maxId + 1);
+
+        tareaService.guardar(tarea);
+
+        Optional<Usuario> devOpt = usuarioService.obtenerPorId(asignadoA);
+        String devNombre = devOpt.map(Usuario::getFullName).orElse("ID " + asignadoA);
+
+        BotHelper.sendMessageToTelegram(chatId,
+            "Tarea creada!\n\n"
+            + "Nombre: " + tarea.getNombre() + "\n"
+            + "Horas estimadas: " + tarea.getHorasEstimadas() + "h\n"
+            + "Prioridad: " + tarea.getPrioridad() + "\n"
+            + "Asignada a: " + devNombre + "\n"
+            + "Estatus: Backlog\n"
+            + "ID: " + tarea.getId(),
+            telegramClient);
     }
 
     // --- Asignar tarea a sprint (marcar En Progreso) ---

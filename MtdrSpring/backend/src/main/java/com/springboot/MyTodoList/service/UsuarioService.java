@@ -39,6 +39,10 @@ public class UsuarioService {
         return usuarioRepository.findByTelefono(telefono);
     }
 
+    public List<Usuario> obtenerDevelopers() {
+        return usuarioRepository.findByRolIgnoreCase("Developer");
+    }
+
     public Usuario vincularTelegram(Usuario usuario, Long telegramId) {
         usuario.setTelegramId(telegramId);
         return usuarioRepository.save(usuario);

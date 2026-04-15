@@ -12,5 +12,5 @@ import java.util.List;
 @EnableTransactionManagement
 public interface SprintRepository extends JpaRepository<Sprint, Long> {
     List<Sprint> findByProyectoId(Long proyectoId);
-    List<Sprint> findByEstatus(String estatus);
+    List<Sprint> findByEstatusIgnoreCase(String estatus);
 }
