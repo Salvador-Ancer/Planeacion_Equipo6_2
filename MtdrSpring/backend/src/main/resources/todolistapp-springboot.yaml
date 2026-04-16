@@ -45,13 +45,13 @@ spec:
     spec:
       containers:
         - name: todolistapp-springboot
-          image: %DOCKER_REGISTRY%/todolistapp-springboot:0.1
+          image: "%DOCKER_REGISTRY%/todolistapp-springboot:0.1"
           imagePullPolicy: Always
           env:
             - name: db_user
-              value: "EQUIPO62"
+              value: "ADMIN"
             - name: db_url
-              value: "jdbc:oracle:thin:@%TODO_PDB_NAME%_tp?TNS_ADMIN=/mtdrworkshop/creds"
+              value: "jdbc:oracle:thin:@reacttodoukcyd_medium?TNS_ADMIN=/mtdrworkshop/creds"
             - name: todo.table.name
               value: "todoitem"
             - name: driver_class_name
@@ -59,7 +59,7 @@ spec:
             - name: OCI_REGION
               value: "%OCI_REGION%"
             - name: dbpassword
-              value: "Hola1234567!" 
+              value: "gofnov-wuqzi9-zeNqex"
             - name: ui_username
               value: "%UI_USERNAME%"
             - name: ui_password
