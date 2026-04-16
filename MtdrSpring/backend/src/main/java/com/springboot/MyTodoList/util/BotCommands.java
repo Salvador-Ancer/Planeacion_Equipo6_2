@@ -12,7 +12,10 @@ public enum BotCommands {
 	SPRINT_ACTIVO("/sprint"),
 	BLOQUEOS("/bloqueos"),
 	RENDIMIENTO("/rendimiento"),
-	ANALIZAR("/analizar");
+	ANALIZAR("/analizar"),
+	ADD_TAREA("/addtarea"),
+	ASIGNAR_SPRINT("/asignarsprint"),
+	COMPLETAR_TAREA("/completartarea");
 
 	private String command;
 

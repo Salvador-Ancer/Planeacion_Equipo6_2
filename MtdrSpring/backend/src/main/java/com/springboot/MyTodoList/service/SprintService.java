@@ -32,7 +32,7 @@ public class SprintService {
     }
 
     public List<Sprint> obtenerPorEstatus(String estatus) {
-        return sprintRepository.findByEstatus(estatus);
+        return sprintRepository.findByEstatusIgnoreCase(estatus);
     }
 
     public void eliminar(Long id) {

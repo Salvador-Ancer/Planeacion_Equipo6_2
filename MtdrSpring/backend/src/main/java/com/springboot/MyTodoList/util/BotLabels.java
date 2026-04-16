@@ -16,7 +16,10 @@ public enum BotLabels {
 	SPRINT_ACTIVO("Sprint Activo"),
 	BLOQUEOS("Bloqueos"),
 	RENDIMIENTO_EQUIPO("Rendimiento del Equipo"),
-	ANALIZAR_IA("Analizar con IA");
+	ANALIZAR_IA("Analizar con IA"),
+	ADD_TAREA("Agregar Tarea"),
+	ASIGNAR_SPRINT("Asignar a Sprint"),
+	COMPLETAR_TAREA("Completar Tarea");
 
 	private String label;
 

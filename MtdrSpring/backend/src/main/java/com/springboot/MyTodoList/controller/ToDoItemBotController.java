@@ -1,6 +1,7 @@
 package com.springboot.MyTodoList.controller;
 
 import com.springboot.MyTodoList.config.BotProps;
+import com.springboot.MyTodoList.model.Usuario;
 import com.springboot.MyTodoList.service.DeepSeekService;
 import com.springboot.MyTodoList.service.KpiService;
 import com.springboot.MyTodoList.service.SprintService;
@@ -8,6 +9,7 @@ import com.springboot.MyTodoList.service.TareaService;
 import com.springboot.MyTodoList.service.ToDoItemService;
 import com.springboot.MyTodoList.service.UsuarioService;
 import com.springboot.MyTodoList.util.BotActions;
+import com.springboot.MyTodoList.util.BotHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,8 +20,13 @@ import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsume
 import org.telegram.telegrambots.longpolling.starter.AfterBotRegistration;
 import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
+import java.util.Optional;
 
 @Component
 public class ToDoItemBotController implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
@@ -67,10 +74,59 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 
 	@Override
 	public void consume(Update update) {
-		if (!update.hasMessage() || !update.getMessage().hasText()) return;
+		if (!update.hasMessage()) return;
+
+		long chatId = update.getMessage().getChatId();
+
+		// Manejo de contacto compartido (registro por teléfono)
+		if (update.getMessage().getContact() != null) {
+			String telefono = update.getMessage().getContact().getPhoneNumber();
+			if (!telefono.startsWith("+")) telefono = "+" + telefono;
+
+			Optional<Usuario> usuarioOpt = usuarioService.obtenerPorTelefono(telefono);
+			if (usuarioOpt.isPresent()) {
+				usuarioService.vincularTelegram(usuarioOpt.get(), chatId);
+				BotHelper.sendMessageToTelegram(chatId,
+					"Bienvenido " + usuarioOpt.get().getFullName() + "! Ya estas registrado. Usa /start para ver el menu.",
+					telegramClient);
+			} else {
+				BotHelper.sendMessageToTelegram(chatId,
+					"Tu numero no esta registrado en el sistema. Pide a tu administrador que te agregue.",
+					telegramClient);
+			}
+			return;
+		}
+
+		if (!update.getMessage().hasText()) return;
 
 		String messageText = update.getMessage().getText();
-		long chatId = update.getMessage().getChatId();
+
+		// Si el usuario no esta registrado y manda /start, pedir telefono
+		if (messageText.equals("/start")) {
+			Optional<Usuario> usuarioOpt = usuarioService.obtenerPorTelegram(chatId);
+			if (usuarioOpt.isEmpty()) {
+				try {
+					KeyboardButton phoneButton = new KeyboardButton("Compartir mi numero de telefono");
+					phoneButton.setRequestContact(true);
+					KeyboardRow row = new KeyboardRow();
+					row.add(phoneButton);
+					ReplyKeyboardMarkup keyboard = ReplyKeyboardMarkup.builder()
+						.resizeKeyboard(true)
+						.oneTimeKeyboard(true)
+						.keyboardRow(row)
+						.build();
+					SendMessage msg = SendMessage.builder()
+						.chatId(chatId)
+						.text("Para identificarte, por favor comparte tu numero de telefono:")
+						.replyMarkup(keyboard)
+						.build();
+					telegramClient.execute(msg);
+				} catch (Exception e) {
+					logger.error("Error pidiendo telefono: {}", e.getMessage(), e);
+				}
+				return;
+			}
+		}
 
 		BotActions actions = new BotActions(
 			telegramClient, toDoItemService, deepSeekService,
@@ -86,6 +142,9 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 		actions.fnBloqueos();
 		actions.fnRendimiento();
 		actions.fnAnalizar();
+		actions.fnAddTarea();
+		actions.fnAsignarSprint();
+		actions.fnCompletarTarea();
 		actions.fnDone();
 		actions.fnUndo();
 		actions.fnDelete();

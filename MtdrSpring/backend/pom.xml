@@ -162,6 +162,8 @@
 				<version>${project.parent.version}</version>
 				<configuration>
 					<mainClass>com.springboot.MyTodoList.MyTodoListApplication</mainClass>
+					<fork>true</fork>
+					<jvmArguments>-Doracle.net.tns_admin=C:/Users/rogie/OneDrive/Escritorio/CLASE09/Planeacion_Equipo6_2/MtdrSpring/backend/wallet</jvmArguments>
 				</configuration>
 				<executions>
 					<execution>
