@@ -86,9 +86,12 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 			Optional<Usuario> usuarioOpt = usuarioService.obtenerPorTelefono(telefono);
 			if (usuarioOpt.isPresent()) {
 				usuarioService.vincularTelegram(usuarioOpt.get(), chatId);
-				BotHelper.sendMessageToTelegram(chatId,
-					"Bienvenido " + usuarioOpt.get().getFullName() + "! Ya estas registrado. Usa /start para ver el menu.",
-					telegramClient);
+				BotActions welcomeActions = new BotActions(
+					telegramClient, toDoItemService, deepSeekService,
+					tareaService, sprintService, kpiService, usuarioService
+				);
+				welcomeActions.setChatId(chatId);
+				welcomeActions.mostrarMenuPrincipal("Bienvenido " + usuarioOpt.get().getFullName() + "! Aqui esta tu menu:");
 			} else {
 				BotHelper.sendMessageToTelegram(chatId,
 					"Tu numero no esta registrado en el sistema. Pide a tu administrador que te agregue.",

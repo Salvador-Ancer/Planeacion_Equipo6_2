@@ -8,6 +8,8 @@ public class UserSession {
         ESPERANDO_NOMBRE_TAREA,
         ESPERANDO_HORAS_ESTIMADAS,
         ESPERANDO_PRIORIDAD,
+        ESPERANDO_DESCRIPCION,
+        ESPERANDO_FECHA_VENCIMIENTO,
         ESPERANDO_DEVELOPER,
         // Completar tarea
         ESPERANDO_ID_COMPLETAR,
@@ -18,6 +20,8 @@ public class UserSession {
     private String nombreTarea;
     private Double horasEstimadas;
     private String prioridad;
+    private String descripcion;
+    private java.util.Date fechaVencimiento;
     private Long tareaIdACompletar;
     private Long developerIdAAsignar;
 
@@ -33,6 +37,12 @@ public class UserSession {
     public String getPrioridad() { return prioridad; }
     public void setPrioridad(String prioridad) { this.prioridad = prioridad; }
 
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public java.util.Date getFechaVencimiento() { return fechaVencimiento; }
+    public void setFechaVencimiento(java.util.Date fechaVencimiento) { this.fechaVencimiento = fechaVencimiento; }
+
     public Long getTareaIdACompletar() { return tareaIdACompletar; }
     public void setTareaIdACompletar(Long tareaIdACompletar) { this.tareaIdACompletar = tareaIdACompletar; }
 
@@ -44,6 +54,8 @@ public class UserSession {
         this.nombreTarea = null;
         this.horasEstimadas = null;
         this.prioridad = null;
+        this.descripcion = null;
+        this.fechaVencimiento = null;
         this.tareaIdACompletar = null;
         this.developerIdAAsignar = null;
     }

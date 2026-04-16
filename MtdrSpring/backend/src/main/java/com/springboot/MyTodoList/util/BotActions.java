@@ -94,12 +94,8 @@ public class BotActions {
 
     // --- Pantalla principal ---
 
-    public void fnStart() {
-        if (!(requestText.equals(BotCommands.START_COMMAND.getCommand())
-                || requestText.equals(BotLabels.SHOW_MAIN_SCREEN.getLabel())) || exit)
-            return;
-
-        BotHelper.sendMessageToTelegram(chatId, BotMessages.HELLO_MYTODO_BOT.getMessage(), telegramClient,
+    public void mostrarMenuPrincipal(String saludo) {
+        BotHelper.sendMessageToTelegram(chatId, saludo, telegramClient,
             ReplyKeyboardMarkup.builder()
                 .resizeKeyboard(true)
                 .keyboardRow(new KeyboardRow(BotLabels.MIS_TAREAS.getLabel(), BotLabels.KPI_SPRINT.getLabel()))
@@ -110,6 +106,14 @@ public class BotActions {
                 .keyboardRow(new KeyboardRow(BotLabels.SHOW_MAIN_SCREEN.getLabel(), BotLabels.HIDE_MAIN_SCREEN.getLabel()))
                 .build()
         );
+    }
+
+    public void fnStart() {
+        if (!(requestText.equals(BotCommands.START_COMMAND.getCommand())
+                || requestText.equals(BotLabels.SHOW_MAIN_SCREEN.getLabel())) || exit)
+            return;
+
+        mostrarMenuPrincipal(BotMessages.HELLO_MYTODO_BOT.getMessage());
         exit = true;
     }
 
@@ -545,7 +549,8 @@ public class BotActions {
             return;
         }
 
-        if (esComando && session.getState() == UserSession.State.NONE) {
+        if (esComando) {
+            session.reset();
             session.setState(UserSession.State.ESPERANDO_NOMBRE_TAREA);
             BotHelper.sendMessageToTelegram(chatId, "Nueva Tarea\n\nEscribe el nombre de la tarea:", telegramClient);
             exit = true;
@@ -595,12 +600,42 @@ public class BotActions {
                 return;
             }
             session.setPrioridad(prioridad);
+            session.setState(UserSession.State.ESPERANDO_DESCRIPCION);
+            BotHelper.sendMessageToTelegram(chatId,
+                "Descripcion de la tarea:\n(Escribe \"-\" para omitir)", telegramClient);
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_DESCRIPCION) {
+            String desc = requestText.trim();
+            session.setDescripcion(desc.equals("-") ? null : desc);
+            session.setState(UserSession.State.ESPERANDO_FECHA_VENCIMIENTO);
+            BotHelper.sendMessageToTelegram(chatId,
+                "Fecha de vencimiento (formato DD/MM/YYYY):\n(Escribe \"-\" para omitir)", telegramClient);
+            exit = true;
+            return;
+        }
+
+        if (session.getState() == UserSession.State.ESPERANDO_FECHA_VENCIMIENTO) {
+            String fechaStr = requestText.trim();
+            if (!fechaStr.equals("-")) {
+                try {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                    sdf.setLenient(false);
+                    session.setFechaVencimiento(sdf.parse(fechaStr));
+                } catch (Exception e) {
+                    BotHelper.sendMessageToTelegram(chatId,
+                        "Formato invalido. Usa DD/MM/YYYY (ej: 30/04/2026) o \"-\" para omitir:", telegramClient);
+                    exit = true;
+                    return;
+                }
+            }
 
             Usuario usuario = usuarioOpt.get();
             boolean esDeveloper = "Developer".equalsIgnoreCase(usuario.getRol());
 
             if (esDeveloper) {
-                // Developer: se asigna a sí mismo
                 crearTarea(session, usuario.getId(), usuario.getId());
                 session.reset();
                 exit = true;
@@ -671,6 +706,10 @@ public class BotActions {
         tarea.setCreadoPor(creadoPor);
         tarea.setFechaCreacion(new Date());
         tarea.setBorrado(0);
+        if (session.getDescripcion() != null)
+            tarea.setDescripcion(session.getDescripcion());
+        if (session.getFechaVencimiento() != null)
+            tarea.setFechaVencimiento(session.getFechaVencimiento());
         if (!sprintsActivos.isEmpty())
             tarea.setSprintId(sprintsActivos.get(0).getId());
 
@@ -683,11 +722,17 @@ public class BotActions {
         Optional<Usuario> devOpt = usuarioService.obtenerPorId(asignadoA);
         String devNombre = devOpt.map(Usuario::getFullName).orElse("ID " + asignadoA);
 
+        java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        String fechaStr = tarea.getFechaVencimiento() != null
+            ? sdfOut.format(tarea.getFechaVencimiento()) : "Sin fecha";
+
         BotHelper.sendMessageToTelegram(chatId,
             "Tarea creada!\n\n"
             + "Nombre: " + tarea.getNombre() + "\n"
+            + "Descripcion: " + (tarea.getDescripcion() != null ? tarea.getDescripcion() : "-") + "\n"
             + "Horas estimadas: " + tarea.getHorasEstimadas() + "h\n"
             + "Prioridad: " + tarea.getPrioridad() + "\n"
+            + "Vencimiento: " + fechaStr + "\n"
             + "Asignada a: " + devNombre + "\n"
             + "Estatus: Backlog\n"
             + "ID: " + tarea.getId(),
@@ -767,7 +812,8 @@ public class BotActions {
             return;
         }
 
-        if (esComando && session.getState() == UserSession.State.NONE) {
+        if (esComando) {
+            session.reset();
             Usuario usuario = usuarioOpt.get();
             List<Tarea> misTareas = tareaService.obtenerPorAsignado(usuario.getId()).stream()
                 .filter(t -> (t.getBorrado() == null || t.getBorrado() == 0)
