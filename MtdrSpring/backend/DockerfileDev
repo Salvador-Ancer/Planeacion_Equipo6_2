@@ -10,9 +10,9 @@ COPY target/MyTodoList-0.0.1-SNAPSHOT.jar MyTodoList.jar
 ENV ui_username="admin"
 ENV ui_password="none0001"
 
-ENV db_user="EQUIPO62"
-ENV dbpassword="Hola1234567!"
-ENV db_url="jdbc:oracle:thin:@reacttodoq2xkw_tp?TNS_ADMIN=/mtdrworkshop/creds"
+ENV db_user="ADMIN"
+ENV dbpassword="gofnov-wuqzi9-zeNqex"
+ENV db_url="jdbc:oracle:thin:@reacttodoukcyd_medium?TNS_ADMIN=/mtdrworkshop/creds"
 ENV driver_class_name="oracle.jdbc.OracleDriver"
 
 ENTRYPOINT ["java","-jar","MyTodoList.jar"]
