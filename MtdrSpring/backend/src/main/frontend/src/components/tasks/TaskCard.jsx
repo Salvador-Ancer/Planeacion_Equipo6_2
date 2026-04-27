@@ -1,44 +1,127 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Card from '../common/Card'
-import { tasksApi } from '../../services/api'
+import { tareasApi } from '../../services/api'
 
 const STATUS_CONFIG = {
-  TODO: { label: 'Por hacer', color: 'var(--muted)', bg: 'var(--border-light)' },
-  IN_PROGRESS: { label: 'En progreso', color: 'var(--accent)', bg: 'var(--accent-light)' },
-  REVIEW: { label: 'En revisión', color: 'var(--amber)', bg: 'var(--amber-light)' },
-  DONE: { label: 'Hecho', color: '#16a34a', bg: 'var(--green-light)' },
-  BLOCKED: { label: 'Bloqueada', color: 'var(--oracle-red)', bg: 'var(--oracle-red-light)' },
+  'Backlog':     { label: 'Backlog',     color: 'var(--muted)',      bg: 'var(--border-light)' },
+  'En Progreso': { label: 'En progreso', color: 'var(--accent)',     bg: 'var(--accent-light)' },
+  'Completado':  { label: 'Completado',  color: '#7A8C5A',           bg: '#F0F2EC' },
+  'Bloqueado':   { label: 'Bloqueada',   color: 'var(--oracle-red)', bg: '#FEE2E2' },
 }
 
 const PRIORITY_CONFIG = {
-  HIGH: { label: 'Alta', color: 'var(--oracle-red)' },
-  MEDIUM: { label: 'Media', color: 'var(--amber)' },
-  LOW: { label: 'Baja', color: 'var(--green)' },
+  'Alta':  { label: 'Alta',  color: 'var(--oracle-red)' },
+  'Media': { label: 'Media', color: 'var(--amber)' },
+  'Baja':  { label: 'Baja',  color: '#7A8C5A' },
 }
 
-export default function TaskCard({ task, onUpdate, onDelete }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+const MENU_EVENT = 'taskCardMenuOpen'
+
+export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
+  const [menuPos,  setMenuPos]  = useState(null)
   const [updating, setUpdating] = useState(false)
+  const btnRef = useRef(null)
 
-  const status = STATUS_CONFIG[task.status] || STATUS_CONFIG.TODO
-  const priority = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.MEDIUM
+  const closeMenu = () => setMenuPos(null)
 
-  const handleStatusChange = async (newStatus) => {
+  // Close when another card opens its menu
+  useEffect(() => {
+    const handler = (e) => { if (e.detail !== task.id) closeMenu() }
+    window.addEventListener(MENU_EVENT, handler)
+    return () => window.removeEventListener(MENU_EVENT, handler)
+  }, [task.id])
+
+  // Close on outside click
+  useEffect(() => {
+    if (!menuPos) return
+    const handler = (e) => {
+      if (btnRef.current && btnRef.current.contains(e.target)) return
+      closeMenu()
+    }
+    window.addEventListener('mousedown', handler)
+    return () => window.removeEventListener('mousedown', handler)
+  }, [menuPos])
+
+  const toggleMenu = (e) => {
+    e.stopPropagation()
+    if (menuPos) { closeMenu(); return }
+    const rect = btnRef.current.getBoundingClientRect()
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    window.dispatchEvent(new CustomEvent(MENU_EVENT, { detail: task.id }))
+  }
+
+  const status   = STATUS_CONFIG[task.estatus]    || STATUS_CONFIG['Backlog']
+  const priority = PRIORITY_CONFIG[task.prioridad] || PRIORITY_CONFIG['Media']
+
+  const handleStatusChange = async (newEstatus) => {
+    closeMenu()
     setUpdating(true)
-    setMenuOpen(false)
     try {
-      const updated = await tasksApi.updateStatus(task.id, newStatus)
-      onUpdate?.(updated || { ...task, status: newStatus })
+      const updated = await tareasApi.update(task.id, { ...task, estatus: newEstatus })
+      onUpdate?.(updated || { ...task, estatus: newEstatus })
     } catch {
-      // optimistic fallback
-      onUpdate?.({ ...task, status: newStatus })
+      onUpdate?.({ ...task, estatus: newEstatus })
     } finally {
       setUpdating(false)
     }
   }
 
+  const dropdown = menuPos && createPortal(
+    <div
+      onMouseDown={e => e.stopPropagation()}
+      style={{
+        position: 'fixed', top: menuPos.top, right: menuPos.right,
+        background: 'white', border: '1px solid #E5E7EB',
+        borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)',
+        padding: 4, zIndex: 9999, minWidth: 160,
+      }}
+    >
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+        Cambiar estado
+      </div>
+      {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+        <button
+          key={key}
+          onClick={() => handleStatusChange(key)}
+          style={{
+            width: '100%', textAlign: 'left', padding: '6px 10px',
+            fontSize: 12.5, color: cfg.color, borderRadius: 5,
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = cfg.bg}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
+          {cfg.label}
+        </button>
+      ))}
+      <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0' }} />
+      <button
+        onClick={() => { onEdit?.(task); closeMenu() }}
+        style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#1B1F3B', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+        onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
+        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+      >
+        Editar tarea
+      </button>
+      <button
+        onClick={() => { onDelete?.(task.id); closeMenu() }}
+        style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#A85550', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+        onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+      >
+        Eliminar tarea
+      </button>
+    </div>,
+    document.body
+  )
+
   return (
     <Card style={{ position: 'relative' }} hoverable>
+      {dropdown}
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <span style={{
@@ -48,78 +131,35 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
         }}>
           {updating ? '…' : status.label}
         </span>
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              color: 'var(--muted)', padding: '2px 4px', borderRadius: 4,
-              cursor: 'pointer', background: 'none', border: 'none',
-              display: 'flex', alignItems: 'center',
-            }}
-          >
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-              <circle cx="10" cy="4" r="1.5" />
-              <circle cx="10" cy="10" r="1.5" />
-              <circle cx="10" cy="16" r="1.5" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <div style={{
-              position: 'absolute', right: 0, top: '100%',
-              background: 'white', border: '1px solid var(--border)',
-              borderRadius: 8, boxShadow: 'var(--shadow-md)',
-              padding: 4, zIndex: 50, minWidth: 140,
-              animation: 'fadeIn .15s ease',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                Cambiar estado
-              </div>
-              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  onClick={() => handleStatusChange(key)}
-                  style={{
-                    width: '100%', textAlign: 'left', padding: '6px 10px',
-                    fontSize: 12.5, color: cfg.color, borderRadius: 5,
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 7,
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = cfg.bg}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
-                  {cfg.label}
-                </button>
-              ))}
-              <div style={{ height: 1, background: 'var(--border-light)', margin: '4px 0' }} />
-              <button
-                onClick={() => { onDelete?.(task.id); setMenuOpen(false) }}
-                style={{
-                  width: '100%', textAlign: 'left', padding: '6px 10px',
-                  fontSize: 12.5, color: 'var(--oracle-red)', borderRadius: 5,
-                  background: 'none', border: 'none', cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--red-light)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-              >
-                Eliminar tarea
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          ref={btnRef}
+          onClick={toggleMenu}
+          style={{
+            color: '#9CA3AF', padding: '2px 4px', borderRadius: 4,
+            cursor: 'pointer', background: 'none', border: 'none',
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <circle cx="10" cy="4" r="1.5" />
+            <circle cx="10" cy="10" r="1.5" />
+            <circle cx="10" cy="16" r="1.5" />
+          </svg>
+        </button>
       </div>
 
       {/* Title */}
       <h4 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6, lineHeight: 1.4 }}>
-        {task.title}
+        {task.nombre}
       </h4>
 
       {/* Description */}
-      {task.description && (
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5,
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+      {task.descripcion && (
+        <p style={{
+          fontSize: 12, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>
-          {task.description}
+          {task.descripcion}
         </p>
       )}
 
@@ -129,17 +169,10 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: priority.color }} />
           <span style={{ fontSize: 11, color: priority.color, fontWeight: 500 }}>{priority.label}</span>
         </div>
-
-        {task.assignee && (
-          <div style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'var(--navy-light)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 600,
-            title: task.assignee,
-          }}>
-            {task.assignee[0].toUpperCase()}
-          </div>
+        {task.fechaVencimiento && (
+          <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>
+            {new Date(task.fechaVencimiento).toLocaleDateString('es-MX')}
+          </span>
         )}
       </div>
     </Card>

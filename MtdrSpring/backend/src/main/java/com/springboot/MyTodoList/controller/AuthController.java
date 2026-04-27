@@ -20,7 +20,6 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final CredencialService credencialService;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthController(UsuarioService usuarioService, CredencialService credencialService) {
         this.usuarioService = usuarioService;
@@ -31,70 +30,60 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody AuthRequest request) {
 
-        // Verificar si el email ya existe
         Credencial existing = credencialService.obtenerPorEmail(request.getEmail());
         if (existing != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new AuthResponse("El email ya está registrado", false));
         }
 
-        // Crear usuario
         Usuario usuario = new Usuario();
         usuario.setId(System.currentTimeMillis());
         usuario.setFullName(request.getFullName());
         usuario.setEmail(request.getEmail());
         usuario.setRol(request.getRol() != null ? request.getRol() : "Developer");
         Usuario savedUsuario = usuarioService.guardar(usuario);
-        System.out.println(">>> Usuario guardado con ID: " + savedUsuario.getId()); 
 
-        // Crear credencial con password hasheado
         Credencial credencial = new Credencial();
         credencial.setEmail(request.getEmail());
-        credencial.setHashPassword(passwordEncoder.encode(request.getPassword()));
+        credencial.setHashPassword(new BCryptPasswordEncoder().encode(request.getPassword()));
         credencial.setUserId(savedUsuario.getId());
         credencial.setFechaCreacion(new Date());
         credencial.setActivo(1);
         credencialService.guardar(credencial);
-        System.out.println(">>> Credencial guardada con USER_ID: " + credencial.getUserId());
-
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse("Usuario registrado exitosamente", true,
-                        savedUsuario.getId(), savedUsuario.getEmail(), savedUsuario.getRol()));
+                        savedUsuario.getId(), savedUsuario.getEmail(), savedUsuario.getRol(), savedUsuario.getFullName()));
     }
 
     // POST /auth/login — iniciar sesión
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
 
-        // Buscar credencial por email
         Credencial credencial = credencialService.obtenerPorEmail(request.getEmail());
         if (credencial == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new AuthResponse("Email o password incorrectos", false));
         }
 
-        // Verificar que la cuenta esté activa
         if (credencial.getActivo() == null || credencial.getActivo() != 1) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new AuthResponse("Cuenta inactiva", false));
         }
 
-        // Verificar password
-        if (!passwordEncoder.matches(request.getPassword(), credencial.getHashPassword())) {
+        if (!new BCryptPasswordEncoder().matches(request.getPassword(), credencial.getHashPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new AuthResponse("Email o password incorrectos", false));
         }
 
-        // Actualizar ultimo login
         credencial.setUltimoLogin(new Date());
         credencialService.guardar(credencial);
 
-        // Obtener datos del usuario
         Optional<Usuario> usuario = usuarioService.obtenerPorId(credencial.getUserId());
         String rol = usuario.map(Usuario::getRol).orElse("Developer");
+        String fullName = usuario.map(Usuario::getFullName).orElse("");
 
         return ResponseEntity.ok(new AuthResponse("Login exitoso", true,
-                credencial.getUserId(), credencial.getEmail(), rol));
+                credencial.getUserId(), credencial.getEmail(), rol, fullName));
     }
 }

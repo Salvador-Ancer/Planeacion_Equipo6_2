@@ -3,30 +3,20 @@ import TaskCard from '../components/tasks/TaskCard'
 import TaskForm from '../components/tasks/TaskForm'
 import Button from '../components/common/Button'
 import Card from '../components/common/Card'
-import { tasksApi } from '../services/api'
+import { tareasApi } from '../services/api'
 
+// DB values: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
 const COLUMNS = [
-  { key: 'TODO', label: 'Por hacer', color: 'var(--muted)', dot: '#94A3B8' },
-  { key: 'IN_PROGRESS', label: 'En progreso', color: 'var(--accent)', dot: 'var(--accent)' },
-  { key: 'REVIEW', label: 'En revisión', color: 'var(--amber)', dot: 'var(--amber)' },
-  { key: 'BLOCKED', label: 'Bloqueada', color: 'var(--oracle-red)', dot: 'var(--oracle-red)' },
-  { key: 'DONE', label: 'Hecho', color: '#16a34a', dot: 'var(--green)' },
-]
-
-const MOCK_TASKS = [
-  { id: 1, title: 'Diseño de arquitectura OCI', description: 'Definir la arquitectura cloud native con Kubernetes y ATP.', status: 'DONE', priority: 'HIGH', assignee: 'Salvador' },
-  { id: 2, title: 'Modelo relacional de BD', description: 'Diseñar el esquema de base de datos en Oracle ATP.', status: 'DONE', priority: 'HIGH', assignee: 'María' },
-  { id: 3, title: 'Implementación del portal web', description: 'Desarrollo del frontend en React y backend en Spring Boot.', status: 'IN_PROGRESS', priority: 'HIGH', assignee: 'Perla' },
-  { id: 4, title: 'Integración Telegram Bot', description: 'Conectar el bot de Telegram con las APIs del sistema.', status: 'IN_PROGRESS', priority: 'HIGH', assignee: 'Rogiero' },
-  { id: 5, title: 'KPIs de productividad', description: 'Implementar cálculo de métricas individuales y de equipo.', status: 'TODO', priority: 'MEDIUM', assignee: 'Silvana' },
-  { id: 6, title: 'Módulo de IA con RAG', description: 'Base de conocimiento para resúmenes y detección de riesgos.', status: 'BLOCKED', priority: 'MEDIUM', assignee: 'Silvana' },
-  { id: 7, title: 'Pruebas del sistema', description: 'Pruebas de integración y validación de flujos completos.', status: 'TODO', priority: 'HIGH', assignee: 'María' },
-  { id: 8, title: 'Deploy en OKE', description: 'Configurar el despliegue de contenedores en Oracle Kubernetes Engine.', status: 'REVIEW', priority: 'HIGH', assignee: 'Salvador' },
+  { key: 'Backlog',     label: 'Backlog',      color: 'var(--muted)',       dot: '#94A3B8' },
+  { key: 'En Progreso', label: 'En progreso',  color: 'var(--accent)',      dot: 'var(--accent)' },
+  { key: 'Bloqueado',   label: 'Bloqueada',    color: 'var(--oracle-red)',  dot: 'var(--oracle-red)' },
+  { key: 'Completado',  label: 'Completado',   color: '#7A8C5A',            dot: '#7A8C5A' },
 ]
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState(MOCK_TASKS)
-  const [view, setView] = useState('kanban') // 'kanban' | 'list'
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('kanban')
   const [showForm, setShowForm] = useState(false)
   const [editTask, setEditTask] = useState(null)
   const [filterStatus, setFilterStatus] = useState('ALL')
@@ -34,15 +24,19 @@ export default function Tasks() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    tasksApi.getAll().then(setTasks).catch(() => {})
+    tareasApi.getAll()
+      .then(setTasks)
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const handleUpdate = (updated) => {
+    tareasApi.update(updated.id, updated).catch(() => {})
     setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
 
   const handleDelete = (id) => {
-    tasksApi.delete(id).catch(() => {})
+    tareasApi.delete(id).catch(() => {})
     setTasks(prev => prev.filter(t => t.id !== id))
   }
 
@@ -50,26 +44,25 @@ export default function Tasks() {
     if (editTask?.id) {
       setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
     } else {
-      setTasks(prev => [...prev, { ...saved, id: Date.now() }])
+      setTasks(prev => [...prev, saved])
     }
     setShowForm(false)
     setEditTask(null)
   }
 
   const filtered = tasks.filter(t => {
-    if (filterStatus !== 'ALL' && t.status !== filterStatus) return false
-    if (filterPriority !== 'ALL' && t.priority !== filterPriority) return false
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (filterStatus !== 'ALL' && t.estatus !== filterStatus) return false
+    if (filterPriority !== 'ALL' && t.prioridad !== filterPriority) return false
+    if (search && !t.nombre?.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const byStatus = (status) => filtered.filter(t => t.status === status)
+  const byStatus = (status) => filtered.filter(t => t.estatus === status)
 
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
-        {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 260 }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }}>
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/></svg>
@@ -80,7 +73,6 @@ export default function Tasks() {
           />
         </div>
 
-        {/* Filters */}
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}>
           <option value="ALL">Todos los estados</option>
@@ -90,12 +82,11 @@ export default function Tasks() {
         <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
           style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}>
           <option value="ALL">Toda prioridad</option>
-          <option value="HIGH">Alta</option>
-          <option value="MEDIUM">Media</option>
-          <option value="LOW">Baja</option>
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Baja">Baja</option>
         </select>
 
-        {/* View toggle */}
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', marginLeft: 'auto' }}>
           {[['kanban', '⊞'], ['list', '≡']].map(([v, icon]) => (
             <button key={v} onClick={() => setView(v)}
@@ -128,32 +119,32 @@ export default function Tasks() {
         ))}
       </div>
 
+      {loading && (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Cargando tareas…</div>
+      )}
+
+      {!loading && tasks.length === 0 && (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+          No hay tareas disponibles
+        </div>
+      )}
+
       {/* KANBAN VIEW */}
-      {view === 'kanban' && (
+      {!loading && view === 'kanban' && (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
           {COLUMNS.map(col => (
             <div key={col.key} style={{ minWidth: 240, flex: '1 0 240px', maxWidth: 300 }}>
-              {/* Column header */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                marginBottom: 10, padding: '6px 2px',
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '6px 2px' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.dot }} />
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: col.color }}>{col.label}</span>
-                <span style={{
-                  marginLeft: 'auto', fontSize: 11, fontWeight: 700,
-                  padding: '1px 7px', borderRadius: 20,
-                  background: 'var(--border-light)', color: 'var(--muted)',
-                }}>
+                <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: 'var(--border-light)', color: 'var(--muted)' }}>
                   {byStatus(col.key).length}
                 </span>
               </div>
-
-              {/* Cards */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {byStatus(col.key).map((task, i) => (
                   <div key={task.id} style={{ animation: `fadeIn .2s ease ${i * 0.05}s both` }}>
-                    <TaskCard task={task} onUpdate={handleUpdate} onDelete={handleDelete} />
+                    <TaskCard task={task} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={(t) => { setEditTask(t); setShowForm(true) }} />
                   </div>
                 ))}
                 {byStatus(col.key).length === 0 && (
@@ -172,44 +163,39 @@ export default function Tasks() {
       )}
 
       {/* LIST VIEW */}
-      {view === 'list' && (
+      {!loading && view === 'list' && (
         <Card>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 90px 90px', gap: 0 }}>
-            {/* Header */}
-            <div style={{
-              display: 'contents',
-              fontSize: 10.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>
-              {['Tarea', 'Estado', 'Prioridad', 'Asignado', 'Acciones'].map(h => (
-                <div key={h} style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 10.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</div>
-              ))}
-            </div>
-            {/* Rows */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 90px', gap: 0 }}>
+            {['Tarea', 'Estado', 'Prioridad', 'Acciones'].map(h => (
+              <div key={h} style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 10.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</div>
+            ))}
             {filtered.map((task, i) => {
-              const col = COLUMNS.find(c => c.key === task.status) || COLUMNS[0]
+              const col = COLUMNS.find(c => c.key === task.estatus) || COLUMNS[0]
               return (
                 <div key={task.id} style={{ display: 'contents' }}>
-                  {[
-                    <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 13, fontWeight: 500, color: 'var(--navy)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>{task.title}</div>,
-                    <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px', borderRadius: 20, color: col.color, background: `${col.dot}22` }}>{col.label}</span>
-                    </div>,
-                    <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 11.5, fontWeight: 600, color: task.priority === 'HIGH' ? 'var(--oracle-red)' : task.priority === 'MEDIUM' ? 'var(--amber)' : 'var(--green)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                      {task.priority === 'HIGH' ? 'Alta' : task.priority === 'MEDIUM' ? 'Media' : 'Baja'}
-                    </div>,
-                    <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--navy-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-                        {task.assignee?.[0] || '?'}
-                      </div>
-                    </div>,
-                    <div style={{ padding: '10px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 4, animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                      <Button size="sm" variant="ghost" onClick={() => { setEditTask(task); setShowForm(true) }}>✏️</Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(task.id)}>🗑️</Button>
-                    </div>,
-                  ].map((cell, ci) => <div key={ci}>{cell}</div>)}
+                  <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 13, fontWeight: 500, color: 'var(--navy)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>{task.nombre}</div>
+                  <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', animation: `fadeIn .2s ease ${i*0.04}s both` }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px', borderRadius: 20, color: col.color, background: `${col.dot}22` }}>{col.label}</span>
+                  </div>
+                  <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 11.5, fontWeight: 600, color: task.prioridad === 'Alta' ? 'var(--oracle-red)' : task.prioridad === 'Media' ? 'var(--amber)' : '#7A8C5A', animation: `fadeIn .2s ease ${i*0.04}s both` }}>
+                    {task.prioridad || '—'}
+                  </div>
+                  <div style={{ padding: '10px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 4, animation: `fadeIn .2s ease ${i*0.04}s both` }}>
+                    <Button size="sm" variant="ghost" onClick={() => { setEditTask(task); setShowForm(true) }}>
+                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(task.id)}>
+                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </Button>
+                  </div>
                 </div>
               )
             })}
+            {filtered.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                No hay tareas que coincidan con los filtros
+              </div>
+            )}
           </div>
         </Card>
       )}

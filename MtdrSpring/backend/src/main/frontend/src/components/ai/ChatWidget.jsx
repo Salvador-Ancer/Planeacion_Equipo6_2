@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import Button from '../common/Button'
+import { aiApi } from '../../services/api'
 
-//Quick action prompts
 const QUICK_OPTIONS = [
   { label: 'Resumen del sprint', prompt: '¿Cuál es el resumen del sprint actual?' },
   { label: 'Tareas bloqueadas', prompt: '¿Cuáles son las tareas bloqueadas y por qué?' },
@@ -9,44 +8,7 @@ const QUICK_OPTIONS = [
   { label: 'Prioridades recomendadas', prompt: '¿Qué tareas deberíamos priorizar esta semana?' },
 ]
 
-//Claude API call
-// La API key se lee del archivo .env (VITE_ANTHROPIC_KEY=sk-ant-...)
-async function askClaude(messages, systemContext) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_KEY
 
-  if (!apiKey) {
-    throw new Error('Falta VITE_ANTHROPIC_KEY en el archivo .env')
-  }
-
-  console.log('Key presente:', !!import.meta.env.VITE_ANTHROPIC_KEY)
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,                             
-      'anthropic-version': '2023-06-01',                
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: systemContext,
-      messages,
-    }),
-  })
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    console.error('Anthropic API error:', response.status, errData)
-    throw new Error(`Error ${response.status}: ${errData?.error?.message || 'Error al conectar'}`)
-  }
-
-  const data = await response.json()
-  const text = data.content?.filter((b) => b.type === 'text').map((b) => b.text).join('') || ''
-  return text
-}
-
-//Message bubble
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
   return (
@@ -81,7 +43,6 @@ function MessageBubble({ msg }) {
   )
 }
 
-//Typing indicator
 function TypingIndicator() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', marginBottom: 8 }}>
@@ -105,7 +66,6 @@ function TypingIndicator() {
   )
 }
 
-//Main ChatWidget component
 export default function ChatWidget({ sprintData, projectData }) {
   const [open, setOpen] = useState(true)
   const [messages, setMessages] = useState([])
@@ -144,13 +104,14 @@ Instrucciones:
 
     try {
       const apiMessages = newMessages.map(({ role, content }) => ({ role, content }))
-      const reply = await askClaude(apiMessages, systemContext)
+      const data = await aiApi.chat(apiMessages, systemContext)
+      const reply = data?.content || ''
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
       console.error('ChatWidget error:', e)
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        content: `⚠️ ${e.message || 'No pude conectarme al asistente. Verifica tu conexión e intenta de nuevo.'}`,
+        content: e.message || 'No pude conectarme al asistente. Verifica tu conexión e intenta de nuevo.',
       }])
     } finally {
       setLoading(false)
@@ -175,15 +136,21 @@ Instrucciones:
           width: 52, height: 52, borderRadius: '50%',
           background: 'linear-gradient(135deg, var(--accent) 0%, var(--navy-light) 100%)',
           color: 'white', border: 'none', cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(37,99,235,.4)',
+          boxShadow: '0 4px 20px rgba(199,70,52,.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, zIndex: 200,
+          zIndex: 200,
           transition: 'transform .2s',
         }}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
       >
-        🤖
+        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+          <path d="M12 2a2 2 0 012 2v1h3a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h3V4a2 2 0 012-2z" strokeLinejoin="round"/>
+          <circle cx="9" cy="10" r="1" fill="currentColor"/>
+          <circle cx="15" cy="10" r="1" fill="currentColor"/>
+          <path d="M9 14s1 1.5 3 1.5 3-1.5 3-1.5" strokeLinecap="round"/>
+          <path d="M8 5V3M16 5V3" strokeLinecap="round"/>
+        </svg>
       </button>
     )
   }
@@ -204,15 +171,21 @@ Instrucciones:
       <div style={{
         padding: '12px 14px',
         borderBottom: '1px solid var(--border)',
-        background: 'linear-gradient(135deg, #1e3a8a 0%, var(--accent) 100%)',
+        background: 'linear-gradient(135deg, #7A1F13 0%, #C74634 100%)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <div style={{
           width: 30, height: 30, borderRadius: '50%',
           background: 'rgba(255,255,255,.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 15,
-        }}>🤖</div>
+          color: 'white',
+        }}>
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M12 2a2 2 0 012 2v1h3a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h3V4a2 2 0 012-2z" strokeLinejoin="round"/>
+            <circle cx="9" cy="10" r="1" fill="currentColor"/>
+            <circle cx="15" cy="10" r="1" fill="currentColor"/>
+          </svg>
+        </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>IA Asistente</div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)' }}>
@@ -266,11 +239,10 @@ Instrucciones:
                   textAlign: 'center', marginBottom: 16,
                   padding: '12px', borderRadius: 10,
                   background: 'var(--accent-light)',
-                  border: '1px solid #BFDBFE',
+                  border: '1px solid var(--border)',
                 }}>
-                  <div style={{ fontSize: 22, marginBottom: 4 }}>👋</div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 3 }}>
-                    ¡Hola! Soy tu asistente IA
+                    Asistente IA
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
                     Puedo ayudarte a analizar tu sprint, detectar riesgos y priorizar tareas.

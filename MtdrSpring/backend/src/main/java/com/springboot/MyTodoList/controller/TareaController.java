@@ -19,13 +19,13 @@ public class TareaController {
         this.tareaService = tareaService;
     }
 
-    // GET /tareas — obtener todas
+    // GET /tareas
     @GetMapping
     public List<Tarea> getAll() {
         return tareaService.obtenerTodas();
     }
 
-    // GET /tareas/{id} — obtener por ID
+    // GET /tareas/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Tarea> getById(@PathVariable Long id) {
         Optional<Tarea> tarea = tareaService.obtenerPorId(id);
@@ -33,26 +33,53 @@ public class TareaController {
                     .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET /tareas/estatus/{estatus} — filtrar por estatus
+    // GET /tareas/estatus/{estatus}
     @GetMapping("/estatus/{estatus}")
     public List<Tarea> getByEstatus(@PathVariable String estatus) {
         return tareaService.obtenerPorEstatus(estatus);
     }
 
-    // GET /tareas/prioridad/{prioridad} — filtrar por prioridad
+    // GET /tareas/prioridad/{prioridad}
     @GetMapping("/prioridad/{prioridad}")
     public List<Tarea> getByPrioridad(@PathVariable String prioridad) {
         return tareaService.obtenerPorPrioridad(prioridad);
     }
 
-    // POST /tareas — crear nueva tarea
+    // GET /tareas/asignado/{userId} — tareas asignadas a un usuario
+    @GetMapping("/asignado/{userId}")
+    public List<Tarea> getByAsignado(@PathVariable Long userId) {
+        return tareaService.obtenerPorAsignado(userId);
+    }
+
+    // GET /tareas/sprint/{sprintId}
+    @GetMapping("/sprint/{sprintId}")
+    public List<Tarea> getBySprint(@PathVariable Long sprintId) {
+        return tareaService.obtenerPorSprint(sprintId);
+    }
+
+    // GET /tareas/proyecto/{proyectoId}
+    @GetMapping("/proyecto/{proyectoId}")
+    public List<Tarea> getByProyecto(@PathVariable Long proyectoId) {
+        return tareaService.obtenerPorProyecto(proyectoId);
+    }
+
+    // POST /tareas
     @PostMapping
     public ResponseEntity<Tarea> create(@RequestBody Tarea tarea) {
+        if (tarea.getId() == null) {
+            tarea.setId(System.currentTimeMillis());
+        }
+        if (tarea.getBorrado() == null) {
+            tarea.setBorrado(0);
+        }
+        if (tarea.getFechaCreacion() == null) {
+            tarea.setFechaCreacion(new java.util.Date());
+        }
         Tarea saved = tareaService.guardar(tarea);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // PUT /tareas/{id} — actualizar tarea
+    // PUT /tareas/{id}
     @PutMapping("/{id}")
     public ResponseEntity<Tarea> update(@PathVariable Long id, @RequestBody Tarea tarea) {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);
@@ -61,7 +88,7 @@ public class TareaController {
         return ResponseEntity.ok(tareaService.guardar(tarea));
     }
 
-    // DELETE /tareas/{id} — eliminar tarea
+    // DELETE /tareas/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);

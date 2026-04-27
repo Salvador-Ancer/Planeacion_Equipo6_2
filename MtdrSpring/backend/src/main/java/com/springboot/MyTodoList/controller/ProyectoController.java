@@ -36,6 +36,9 @@ public class ProyectoController {
     // POST /proyectos — crear nuevo proyecto
     @PostMapping
     public ResponseEntity<Proyecto> create(@RequestBody Proyecto proyecto) {
+        if (proyecto.getId() == null) {
+            proyecto.setId(System.currentTimeMillis());
+        }
         Proyecto saved = proyectoService.guardar(proyecto);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

@@ -8,38 +8,17 @@ export default function KPIBox({
   subtitle,
   trend,
   trendLabel,
-  color = 'var(--accent)',
-  icon,
-  variant = 'default',
 }) {
   const trendUp = trend > 0
   const trendColor = trendUp ? 'var(--green)' : 'var(--oracle-red)'
   const trendBg = trendUp ? 'var(--green-light)' : 'var(--red-light)'
 
   return (
-    <Card hoverable style={{ position: 'relative', overflow: 'hidden' }}>
-      <div style={{
-        position: 'absolute', top: -20, right: -20,
-        width: 80, height: 80, borderRadius: '50%',
-        background: color, opacity: .07,
-        pointerEvents: 'none',
-      }} />
-
+    <Card hoverable>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
           {title}
         </span>
-        {icon && (
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: color, opacity: .12,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color, opacity: 1 / 0.12, display: 'flex' }}>
-              {icon}
-            </span>
-          </div>
-        )}
       </div>
 
       <div style={{ fontSize: 30, fontWeight: 700, color: 'var(--navy)', lineHeight: 1, marginBottom: 6 }}>

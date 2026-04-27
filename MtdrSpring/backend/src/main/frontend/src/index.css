@@ -14,21 +14,21 @@
   --red-alert: #EF4444;
   --red-light: #FEF2F2;
 
-  /* Colors — Accent (Blue) */
-  --accent: #2563EB;
-  --accent-light: #EFF6FF;
+  /* Colors — Accent (Charcoal — replaces blue) */
+  --accent: #374151;
+  --accent-light: #F3F4F6;
 
   /* Colors — Navy */
   --navy: #1B1F3B;
   --navy-light: #2D3260;
 
-  /* Colors — Greens */
-  --green: #16a34a;
-  --green-light: #DCFCE7;
+  /* Colors — Greens (neutral — kept for semantic use) */
+  --green: #374151;
+  --green-light: #F3F4F6;
 
-  /* Colors — Amber */
-  --amber: #D97706;
-  --amber-light: #FEF3C7;
+  /* Colors — Amber (neutral slate) */
+  --amber: #64748B;
+  --amber-light: #F1F5F9;
 
   /* Colors — Neutrals */
   --slate: #475569;
