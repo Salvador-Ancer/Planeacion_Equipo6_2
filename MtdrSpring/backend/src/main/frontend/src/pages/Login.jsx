@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { authApi } from '../services/api'
 
 export default function Login() {
   const { login } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -12,9 +14,7 @@ export default function Login() {
 
   const validate = () => {
     if (!email) return 'Ingresa tu correo'
-    if (!email.endsWith('@oracle.com')) return 'Debes usar un correo @oracle.com'
     if (!password) return 'Ingresa tu contraseña'
-    if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres'
     return null
   }
 
@@ -28,16 +28,24 @@ export default function Login() {
 
     try {
       const data = await authApi.login(email, password)
-      if (data?.token) localStorage.setItem('opm_token', data.token)
-      login(data?.user || { email, name: email.split('@')[0] })
-    } catch (e) {
-    //CAMBIAR!!! 
-      // Dev mode: allow any @oracle.com login without backend
-      if (email.endsWith('@oracle.com')) {
-        login({ email, name: email.split('@')[0], role: 'DEVELOPER' })
-      } else {
-        setError(e.message || 'Credenciales incorrectas')
+
+      if (!data?.exito) {
+        setError(data?.mensaje || 'Credenciales incorrectas')
+        return
       }
+
+      const userData = {
+        userId:   data.userId,
+        fullName: data.fullName || email.split('@')[0],
+        email:    data.email,
+        rol:      data.rol,
+      }
+
+      login(userData)
+
+      navigate('/dashboard', { replace: true })
+    } catch (e) {
+      setError(e.message || 'Credenciales incorrectas')
     } finally {
       setLoading(false)
     }
@@ -57,48 +65,31 @@ export default function Login() {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
-      background: '#F4F6F9',
+      background: '#F7F5F4',
       fontFamily: 'DM Sans, sans-serif',
     }}>
       {/* Left panel — branding */}
       <div style={{
         width: '42%',
-        background: 'linear-gradient(160deg, #1B1F3B 0%, #2D3260 50%, #1B1F3B 100%)',
+        background: 'linear-gradient(175deg, #7A1F13 0%, #C74634 55%, #A83828 100%)',
         display: 'flex', flexDirection: 'column',
-        padding: '48px',
-        position: 'relative',
-        overflow: 'hidden',
+        justifyContent: 'space-between',
+        padding: '52px 48px',
       }}>
-        {/* Decorative circles */}
-        {[['-60px', '-60px', 260], ['auto', '-80px', 180], ['60%', '70%', 140]].map(([t, r, s], i) => (
-          <div key={i} style={{
-            position: 'absolute', top: t, right: r,
-            width: s, height: s, borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,.07)',
-            pointerEvents: 'none',
-          }} />
-        ))}
-
-        {/* Oracle logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 60 }}>
-          <svg width="36" height="28" viewBox="0 0 36 28" fill="none">
-            <ellipse cx="18" cy="14" rx="17" ry="13" stroke="#C74634" strokeWidth="2.5" />
-            <ellipse cx="18" cy="14" rx="9" ry="13" stroke="#C74634" strokeWidth="2.5" />
-            <line x1="1" y1="14" x2="35" y2="14" stroke="#C74634" strokeWidth="2.5" />
-          </svg>
-          <span style={{ fontSize: 22, fontWeight: 800, color: '#C74634', letterSpacing: '-.5px' }}>ORACLE</span>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            Oracle
+          </span>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h1 style={{
-            fontSize: 36, fontWeight: 800,
-            color: 'white', lineHeight: 1.2,
-            marginBottom: 16,
-          }}>
-            Oracle Project<br />
-            <span style={{ color: '#C74634' }}>Management</span>
+        <div>
+          <div style={{ width: 40, height: 3, background: 'rgba(255,255,255,.35)', borderRadius: 2, marginBottom: 28 }} />
+          <h1 style={{ fontSize: 38, fontWeight: 800, color: 'white', lineHeight: 1.15, margin: 0 }}>
+            Project<br />Management
           </h1>
         </div>
+
+        <div />
       </div>
 
       {/* Right panel — form */}
@@ -116,7 +107,7 @@ export default function Login() {
           <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B1F3B', marginBottom: 6 }}>
             Iniciar sesión
           </h2>
-          <br></br>
+          <br />
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Email */}
@@ -135,9 +126,9 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nombre@oracle.com"
+                  placeholder="correo@ejemplo.com"
                   style={{ ...inputStyle, paddingLeft: 38 }}
-                  onFocus={(e) => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,.1)' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#C74634'; e.target.style.boxShadow = '0 0 0 3px rgba(199,70,52,.1)' }}
                   onBlur={(e) => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none' }}
                 />
               </div>
@@ -161,7 +152,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   style={{ ...inputStyle, paddingLeft: 38, paddingRight: 40 }}
-                  onFocus={(e) => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,.1)' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#C74634'; e.target.style.boxShadow = '0 0 0 3px rgba(199,70,52,.1)' }}
                   onBlur={(e) => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none' }}
                 />
                 <button
@@ -192,7 +183,7 @@ export default function Login() {
                 <svg width="14" height="14" fill="#EF4444" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
-                <span style={{ fontSize: 12.5, color: '#DC2626' }}>{error}</span>
+                <span style={{ fontSize: 12.5, color: '#A85550' }}>{error}</span>
               </div>
             )}
 

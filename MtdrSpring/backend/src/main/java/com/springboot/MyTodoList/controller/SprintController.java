@@ -19,13 +19,13 @@ public class SprintController {
         this.sprintService = sprintService;
     }
 
-    // GET /sprints — obtener todos
+    // GET /sprints
     @GetMapping
     public List<Sprint> getAll() {
         return sprintService.obtenerTodos();
     }
 
-    // GET /sprints/{id} — obtener por ID
+    // GET /sprints/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Sprint> getById(@PathVariable Long id) {
         Optional<Sprint> sprint = sprintService.obtenerPorId(id);
@@ -33,14 +33,29 @@ public class SprintController {
                      .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST /sprints — crear nuevo sprint
+    // GET /sprints/activos — sprints con estatus 'Activo'
+    @GetMapping("/activos")
+    public List<Sprint> getActivos() {
+        return sprintService.obtenerPorEstatus("Activo");
+    }
+
+    // GET /sprints/proyecto/{proyectoId}
+    @GetMapping("/proyecto/{proyectoId}")
+    public List<Sprint> getByProyecto(@PathVariable Long proyectoId) {
+        return sprintService.obtenerPorProyecto(proyectoId);
+    }
+
+    // POST /sprints
     @PostMapping
     public ResponseEntity<Sprint> create(@RequestBody Sprint sprint) {
+        if (sprint.getId() == null) {
+            sprint.setId(System.currentTimeMillis());
+        }
         Sprint saved = sprintService.guardar(sprint);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // PUT /sprints/{id} — actualizar sprint
+    // PUT /sprints/{id}
     @PutMapping("/{id}")
     public ResponseEntity<Sprint> update(@PathVariable Long id, @RequestBody Sprint sprint) {
         Optional<Sprint> existing = sprintService.obtenerPorId(id);
@@ -49,7 +64,7 @@ public class SprintController {
         return ResponseEntity.ok(sprintService.guardar(sprint));
     }
 
-    // DELETE /sprints/{id} — eliminar sprint
+    // DELETE /sprints/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Optional<Sprint> existing = sprintService.obtenerPorId(id);

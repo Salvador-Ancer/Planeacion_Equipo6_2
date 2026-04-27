@@ -1,102 +1,93 @@
 import { useState, useEffect } from 'react'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
-import { projectsApi } from '../services/api'
+import { proyectosApi, tareasApi } from '../services/api'
+import { useAuth } from '../App'
 
-const MOCK_PROJECTS = [
-  { id: 1, name: 'Portal Web OPM', description: 'Portal web para gestión de proyectos y tareas con dashboard en tiempo real.', status: 'ACTIVE', progress: 68, tasksTotal: 18, tasksDone: 12, team: ['S', 'P', 'R'], startDate: '2026-04-01', endDate: '2026-06-15' },
-  { id: 2, name: 'ChatBot Telegram', description: 'Integración con Telegram Bot para consulta de tareas y KPIs vía chat.', status: 'ACTIVE', progress: 35, tasksTotal: 10, tasksDone: 3, team: ['R', 'M'], startDate: '2026-04-08', endDate: '2026-05-20' },
-  { id: 3, name: 'Módulo IA & RAG', description: 'Base de conocimiento con RAG para detección de riesgos y priorización inteligente.', status: 'PLANNED', progress: 10, tasksTotal: 8, tasksDone: 1, team: ['S', 'P'], startDate: '2026-05-01', endDate: '2026-06-30' },
-  { id: 4, name: 'OCI Infrastructure', description: 'Configuración de OKE, ATP, VCN y políticas de seguridad en Oracle Cloud.', status: 'ACTIVE', progress: 80, tasksTotal: 12, tasksDone: 9, team: ['S', 'R'], startDate: '2026-03-15', endDate: '2026-04-30' },
-]
-
+// estatus values from DB: 'Planeado' | 'En Progreso' | 'Completado' | 'Cancelado'
 const STATUS_CONFIG = {
-  ACTIVE: { label: 'Activo', color: '#16a34a', bg: '#DCFCE7' },
-  PLANNED: { label: 'Planeado', color: '#2563EB', bg: '#DBEAFE' },
-  PAUSED: { label: 'Pausado', color: '#D97706', bg: '#FEF3C7' },
-  DONE: { label: 'Completado', color: '#6B7280', bg: '#F1F5F9' },
+  'Planeado':    { label: 'Planeado',    color: '#374151', bg: '#F1F5F9' },
+  'En Progreso': { label: 'En progreso', color: '#A85550', bg: '#F5ECEB' },
+  'Completado':  { label: 'Completado',  color: '#7A8C5A', bg: '#F0F2EC' },
+  'Cancelado':   { label: 'Cancelado',   color: '#A85550', bg: '#FEE2E2' },
 }
 
-function ProjectCard({ project, onEdit, onDelete }) {
-  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.PLANNED
+function ProjectCard({ project, taskStats, onEdit, canEdit }) {
+  const st = STATUS_CONFIG[project.estatus] || STATUS_CONFIG['Planeado']
+  const done  = taskStats?.completadas ?? 0
+  const total = taskStats?.total       ?? 0
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0
+
   return (
     <Card hoverable style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <h3 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--navy)' }}>{project.name}</h3>
+            <h3 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--navy)' }}>{project.nombre}</h3>
             <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: st.bg, color: st.color, flexShrink: 0 }}>
               {st.label}
             </span>
           </div>
-          <p style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{project.description}</p>
+          {project.descripcion && (
+            <p style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{project.descripcion}</p>
+          )}
         </div>
       </div>
 
       {/* Progress */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-          <span style={{ color: 'var(--muted)' }}>{project.tasksDone}/{project.tasksTotal} tareas</span>
-          <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{project.progress}%</span>
+          <span style={{ color: 'var(--muted)' }}>{done}/{total} tareas</span>
+          <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{pct}%</span>
         </div>
         <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 99, overflow: 'hidden' }}>
           <div style={{
             height: '100%', borderRadius: 99,
-            width: `${project.progress}%`,
-            background: project.progress >= 70 ? 'var(--green)' : project.progress >= 40 ? 'var(--accent)' : 'var(--amber)',
+            width: `${pct}%`,
+            background: 'linear-gradient(90deg, #9E3527, #C74634, #E8614A)',
             transition: 'width .8s ease',
           }} />
         </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {/* Team avatars */}
-        <div style={{ display: 'flex', gap: -4 }}>
-          {project.team.map((initial, i) => (
-            <div key={i} style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: ['var(--oracle-red)', 'var(--accent)', 'var(--navy-light)', 'var(--amber)'][i % 4],
-              color: 'white', fontSize: 10, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '2px solid white', marginLeft: i > 0 ? -8 : 0,
-              zIndex: project.team.length - i,
-            }}>{initial}</div>
-          ))}
-        </div>
-
-        {/* Dates */}
         <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-          {project.startDate} → {project.endDate}
+          {project.fechaInicio ? new Date(project.fechaInicio).toLocaleDateString('es-MX') : '—'}
+          {' → '}
+          {project.fechaFin ? new Date(project.fechaFin).toLocaleDateString('es-MX') : '—'}
         </span>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          <Button size="sm" variant="outline" onClick={() => onEdit(project)}>Editar</Button>
-        </div>
+        {canEdit && <Button size="sm" variant="outline" onClick={() => onEdit(project)}>Editar</Button>}
       </div>
     </Card>
   )
 }
 
 function ProjectModal({ project, onClose, onSave }) {
-  const [form, setForm] = useState(project || { name: '', description: '', status: 'PLANNED', startDate: '', endDate: '' })
+  const [form, setForm] = useState(project
+    ? { nombre: project.nombre || '', descripcion: project.descripcion || '', estatus: project.estatus || 'Planeado', fechaInicio: project.fechaInicio?.slice(0,10) || '', fechaFin: project.fechaFin?.slice(0,10) || '' }
+    : { nombre: '', descripcion: '', estatus: 'Planeado', fechaInicio: '', fechaFin: '' }
+  )
   const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = async () => {
-    if (!form.name.trim()) return
+    if (!form.nombre.trim()) { setErr('El nombre es requerido'); return }
     setLoading(true)
+    setErr('')
     try {
-      const saved = project?.id ? await projectsApi.update(project.id, form) : await projectsApi.create(form)
-      onSave(saved || form)
-    } catch {
-      onSave(form) // optimistic
+      const saved = project?.id
+        ? await proyectosApi.update(project.id, form)
+        : await proyectosApi.create(form)
+      onSave(saved)
+    } catch (e) {
+      setErr(e.message || 'Error al guardar el proyecto')
     } finally { setLoading(false) }
   }
 
-  const input = { width: '100%', height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, outline: 'none', fontFamily: 'inherit' }
-  const label = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--slate)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.06em' }
+  const input = { width: '100%', height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
+  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--slate)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.06em' }
 
   return (
     <div style={{
@@ -104,17 +95,46 @@ function ProjectModal({ project, onClose, onSave }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 300, animation: 'fadeIn .2s ease',
     }} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 24, width: 440, boxShadow: 'var(--shadow-lg)', animation: 'fadeIn .2s ease' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 24, width: 440, boxShadow: 'var(--shadow-lg)' }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>{project?.id ? 'Editar' : 'Nuevo'} proyecto</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><label style={label}>Nombre *</label><input style={input} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nombre del proyecto" onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} /></div>
-          <div><label style={label}>Descripción</label><textarea style={{ ...input, height: 72, padding: '8px 10px', resize: 'none' }} value={form.description} onChange={e => set('description', e.target.value)} onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={label}>Estado</label><select style={{ ...input, cursor: 'pointer' }} value={form.status} onChange={e => set('status', e.target.value)}><option value="PLANNED">Planeado</option><option value="ACTIVE">Activo</option><option value="PAUSED">Pausado</option><option value="DONE">Completado</option></select></div>
-            <div><label style={label}>Fecha inicio</label><input type="date" style={input} value={form.startDate} onChange={e => set('startDate', e.target.value)} onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} /></div>
+          <div>
+            <label style={labelStyle}>Nombre *</label>
+            <input style={input} value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre del proyecto"
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
           </div>
-          <div><label style={label}>Fecha fin</label><input type="date" style={input} value={form.endDate} onChange={e => set('endDate', e.target.value)} onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} /></div>
+          <div>
+            <label style={labelStyle}>Descripción</label>
+            <textarea style={{ ...input, height: 72, padding: '8px 10px', resize: 'none' }} value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Estado</label>
+              <select style={{ ...input, cursor: 'pointer' }} value={form.estatus} onChange={e => set('estatus', e.target.value)}>
+                <option value="Planeado">Planeado</option>
+                <option value="En Progreso">En Progreso</option>
+                <option value="Completado">Completado</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Fecha inicio</label>
+              <input type="date" style={input} value={form.fechaInicio} onChange={e => set('fechaInicio', e.target.value)}
+                onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Fecha fin</label>
+            <input type="date" style={input} value={form.fechaFin} onChange={e => set('fechaFin', e.target.value)}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'} onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+          </div>
         </div>
+        {err && (
+          <div style={{ padding: '8px 12px', borderRadius: 8, background: '#FEF2F2', border: '1px solid #FECACA', fontSize: 12, color: '#A85550', marginTop: 8 }}>
+            {err}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button variant="primary" loading={loading} onClick={handleSave}>Guardar proyecto</Button>
@@ -125,37 +145,88 @@ function ProjectModal({ project, onClose, onSave }) {
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState(MOCK_PROJECTS)
-  const [modal, setModal] = useState(null) // null | 'create' | project object
+  const { user } = useAuth()
+  const isDev = user?.rol === 'Developer'
+
+  const [projects, setProjects]   = useState([])
+  const [taskStats, setTaskStats] = useState({})
+  const [loading, setLoading]     = useState(true)
+  const [modal, setModal]         = useState(null)
 
   useEffect(() => {
-    projectsApi.getAll().then(setProjects).catch(() => {})
-  }, [])
+    const load = async () => {
+      try {
+        const [allProjects, myTasks] = await Promise.all([
+          proyectosApi.getAll(),
+          isDev && user?.userId ? tareasApi.getByAsignado(user.userId) : Promise.resolve([]),
+        ])
+
+        // Developers only see projects where they have tasks
+        const myProjectIds = isDev
+          ? new Set((myTasks || []).map(t => t.proyectoId).filter(Boolean))
+          : null
+        const visible = isDev
+          ? allProjects.filter(p => myProjectIds.has(p.id))
+          : allProjects
+
+        setProjects(visible)
+
+        const stats = {}
+        await Promise.all(visible.map(async (p) => {
+          try {
+            const tareas = await tareasApi.getByProyecto(p.id)
+            stats[p.id] = {
+              total:       tareas.length,
+              completadas: tareas.filter(t => t.estatus === 'Completado').length,
+            }
+          } catch { stats[p.id] = { total: 0, completadas: 0 } }
+        }))
+        setTaskStats(stats)
+      } catch {
+        setProjects([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [isDev, user?.userId])
 
   const handleSave = (saved) => {
-    setProjects(prev => modal?.id ? prev.map(p => p.id === saved.id ? { ...p, ...saved } : p) : [...prev, { ...saved, id: Date.now(), progress: 0, tasksTotal: 0, tasksDone: 0, team: [] }])
+    setProjects(prev =>
+      modal?.id
+        ? prev.map(p => p.id === saved.id ? { ...p, ...saved } : p)
+        : [...prev, saved]
+    )
     setModal(null)
   }
+
+  const enProgreso  = projects.filter(p => p.estatus === 'En Progreso').length
+  const planeados   = projects.filter(p => p.estatus === 'Planeado').length
+  const completados = projects.filter(p => p.estatus === 'Completado').length
 
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>{projects.length} proyectos en total</p>
-        </div>
-        <Button variant="primary" icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>} onClick={() => setModal({})}>
-          Nuevo proyecto
-        </Button>
+        <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+          {isDev ? 'Proyectos en los que participas' : `${projects.length} proyectos en total`}
+        </p>
+        {!isDev && (
+          <Button variant="primary"
+            icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
+            onClick={() => setModal({})}>
+            Nuevo proyecto
+          </Button>
+        )}
       </div>
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Total', value: projects.length, color: 'var(--navy)' },
-          { label: 'Activos', value: projects.filter(p => p.status === 'ACTIVE').length, color: 'var(--green)' },
-          { label: 'Planeados', value: projects.filter(p => p.status === 'PLANNED').length, color: 'var(--accent)' },
-          { label: 'Completados', value: projects.filter(p => p.status === 'DONE').length, color: 'var(--muted)' },
+          { label: 'Total',       value: projects.length, color: 'var(--navy)' },
+          { label: 'En progreso', value: enProgreso,       color: '#A85550' },
+          { label: 'Planeados',   value: planeados,        color: 'var(--accent)' },
+          { label: 'Completados', value: completados,      color: 'var(--muted)' },
         ].map(({ label, value, color }) => (
           <Card key={label} style={{ textAlign: 'center', padding: '16px 12px' }}>
             <div style={{ fontSize: 26, fontWeight: 700, color }}>{value}</div>
@@ -164,14 +235,26 @@ export default function Projects() {
         ))}
       </div>
 
+      {loading && (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Cargando proyectos…</div>
+      )}
+
+      {!loading && projects.length === 0 && (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+          No hay proyectos disponibles
+        </div>
+      )}
+
       {/* Projects grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-        {projects.map((project, i) => (
-          <div key={project.id} style={{ animation: `fadeIn .25s ease ${i * 0.06}s both` }}>
-            <ProjectCard project={project} onEdit={setModal} onDelete={(id) => setProjects(p => p.filter(x => x.id !== id))} />
-          </div>
-        ))}
-      </div>
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+          {projects.map((project, i) => (
+            <div key={project.id} style={{ animation: `fadeIn .25s ease ${i * 0.06}s both` }}>
+              <ProjectCard project={project} taskStats={taskStats[project.id]} onEdit={setModal} canEdit={!isDev} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {modal !== null && (
         <ProjectModal project={modal?.id ? modal : null} onClose={() => setModal(null)} onSave={handleSave} />
