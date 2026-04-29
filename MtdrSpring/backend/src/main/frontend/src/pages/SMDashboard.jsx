@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { tareasApi, sprintsApi, proyectosApi } from '../services/api'
+import { tareasApi, sprintsApi, usuariosApi } from '../services/api'
 import ChatWidget from '../components/ai/ChatWidget'
 
 const ESTATUS_COLOR = {
@@ -101,20 +101,29 @@ export default function SMDashboard() {
   const navigate = useNavigate()
   const [tareas,    setTareas]    = useState([])
   const [sprints,   setSprints]   = useState([])
+  const [usuarios,  setUsuarios]  = useState([])
   const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
     Promise.all([
       tareasApi.getAll(),
       sprintsApi.getActivos(),
+      usuariosApi.getAll(),
     ])
-      .then(([t, s]) => {
+      .then(([t, s, u]) => {
         setTareas(Array.isArray(t) ? t : [])
         setSprints(Array.isArray(s) ? s : [])
+        setUsuarios(Array.isArray(u) ? u : [])
       })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  const getUserName = (id) => {
+    if (!id) return '—'
+    const u = usuarios.find(u => Number(u.id) === Number(id))
+    return u ? (u.fullName || u.email || `#${id}`) : `#${id}`
+  }
 
   if (loading) {
     return (
@@ -252,7 +261,7 @@ export default function SMDashboard() {
                       ● {t.prioridad || '—'}
                     </span>
                     <span style={{ fontSize: 11.5, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.asignadoA || '—'}
+                      {getUserName(t.asignadoA)}
                     </span>
                   </div>
                 )
