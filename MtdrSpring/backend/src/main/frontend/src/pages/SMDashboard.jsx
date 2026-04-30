@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { tareasApi, sprintsApi, usuariosApi } from '../services/api'
-import ChatWidget from '../components/ai/ChatWidget'
 
 const ESTATUS_COLOR = {
   'Backlog':     { bg: '#F3F4F6', color: '#374151' },
@@ -271,10 +270,6 @@ export default function SMDashboard() {
         </div>
       </div>
 
-      {/* Chat widget */}
-      <div style={{ width: 300, flexShrink: 0 }}>
-        <ChatWidget sprintData={sprints[0] || null} projectData={null} />
-      </div>
     </div>
   )
 }

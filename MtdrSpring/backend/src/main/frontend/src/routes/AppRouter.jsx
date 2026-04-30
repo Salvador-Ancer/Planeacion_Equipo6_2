@@ -14,6 +14,7 @@ import Sprints      from '../pages/Sprints'
 import CargaDev     from '../pages/CargaDev'
 import Sidebar      from '../components/layout/Sidebar'
 import Navbar       from '../components/layout/Navbar'
+import ChatWidget   from '../components/ai/ChatWidget'
 
 const ADMIN_ROLES = ['Admin']
 const SM_ROLES    = ['Scrum Master']
@@ -39,6 +40,7 @@ function AppLayout({ children }) {
           {children}
         </main>
       </div>
+      <ChatWidget />
     </div>
   )
 }

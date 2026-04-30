@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { aiApi } from '../../services/api'
+import { ragApi, sprintsApi, proyectosApi } from '../../services/api'
 
 const QUICK_OPTIONS = [
   { label: 'Resumen del sprint', prompt: '¿Cuál es el resumen del sprint actual?' },
-  { label: 'Tareas bloqueadas', prompt: '¿Cuáles son las tareas bloqueadas y por qué?' },
-  { label: 'Riesgos actuales', prompt: '¿Qué riesgos detectas en el proyecto actual?' },
+  { label: 'Tareas bloqueadas', prompt: '¿Cuáles son las tareas bloqueadas?' },
+  { label: 'Riesgos actuales', prompt: '¿Qué riesgos detectas en el proyecto?' },
   { label: 'Prioridades recomendadas', prompt: '¿Qué tareas deberíamos priorizar esta semana?' },
 ]
-
 
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
@@ -66,32 +65,42 @@ function TypingIndicator() {
   )
 }
 
-export default function ChatWidget({ sprintData, projectData }) {
-  const [open, setOpen] = useState(true)
+export default function ChatWidget() {
+  const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [minimized, setMinimized] = useState(false)
+  const [proyectoId, setProyectoId] = useState(null)
+  const [proyectoNombre, setProyectoNombre] = useState(null)
+  const [loadingContext, setLoadingContext] = useState(false)
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // System prompt con contexto real del sprint/proyecto cuando estén disponibles
-  const systemContext = `Eres el Asistente IA de OPM (Oracle Project Management), una herramienta de gestión de proyectos de software para equipos de desarrollo. Eres conciso, útil y experto en metodologías ágiles, Scrum, gestión de sprints y KPIs de productividad.
-
-Contexto del sistema actual:
-${sprintData ? `Sprint activo: ${JSON.stringify(sprintData)}` : 'No hay sprint activo disponible.'}
-${projectData ? `Proyectos: ${JSON.stringify(projectData)}` : ''}
-
-Instrucciones:
-- Responde SIEMPRE en español
-- Sé conciso y directo (máximo 3-4 párrafos o una lista clara)
-- Usa emojis ocasionalmente para resaltar puntos clave
-- Cuando no tengas datos reales del contexto, dalo a entender y ofrece recomendaciones generales basadas en buenas prácticas ágiles
-- Nunca inventes métricas específicas como si fueran reales si no te las proporcionaron`
+  // Auto-detectar el proyecto activo al montar
+  useEffect(() => {
+    setLoadingContext(true)
+    sprintsApi.getActivos()
+      .then(sprints => {
+        if (sprints?.length > 0) {
+          setProyectoId(sprints[0].proyectoId)
+          return proyectosApi.getById(sprints[0].proyectoId)
+            .then(p => setProyectoNombre(p?.nombre || null))
+        }
+        return proyectosApi.getAll().then(proyectos => {
+          const activo = proyectos?.find(p => p.estatus === 'En Progreso') || proyectos?.[0]
+          if (activo) {
+            setProyectoId(activo.id)
+            setProyectoNombre(activo.nombre)
+          }
+        })
+      })
+      .catch(() => {})
+      .finally(() => setLoadingContext(false))
+  }, [])
 
   const sendMessage = async (text) => {
     const userMsg = text || input.trim()
@@ -103,13 +112,12 @@ Instrucciones:
     setLoading(true)
 
     try {
-      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }))
-      const data = await aiApi.chat(apiMessages, systemContext)
-      const reply = data?.content || ''
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      if (!proyectoId) throw new Error('No se pudo detectar el proyecto activo.')
+      const data = await ragApi.chat(proyectoId, userMsg)
+      const reply = data?.respuesta || ''
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
-      console.error('ChatWidget error:', e)
-      setMessages((prev) => [...prev, {
+      setMessages(prev => [...prev, {
         role: 'assistant',
         content: e.message || 'No pude conectarme al asistente. Verifica tu conexión e intenta de nuevo.',
       }])
@@ -127,6 +135,7 @@ Instrucciones:
 
   const clearChat = () => setMessages([])
 
+  // Botón flotante cuando está cerrado
   if (!open) {
     return (
       <button
@@ -134,33 +143,39 @@ Instrucciones:
         style={{
           position: 'fixed', bottom: 24, right: 24,
           width: 52, height: 52, borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--accent) 0%, var(--navy-light) 100%)',
+          background: 'linear-gradient(135deg, var(--accent) 0%, #7A1F13 100%)',
           color: 'white', border: 'none', cursor: 'pointer',
           boxShadow: '0 4px 20px rgba(199,70,52,.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 200,
           transition: 'transform .2s',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        title="Asistente IA"
       >
         <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path d="M12 2a2 2 0 012 2v1h3a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h3V4a2 2 0 012-2z" strokeLinejoin="round"/>
           <circle cx="9" cy="10" r="1" fill="currentColor"/>
           <circle cx="15" cy="10" r="1" fill="currentColor"/>
           <path d="M9 14s1 1.5 3 1.5 3-1.5 3-1.5" strokeLinecap="round"/>
-          <path d="M8 5V3M16 5V3" strokeLinecap="round"/>
         </svg>
       </button>
     )
   }
 
+  // Panel flotante cuando está abierto
   return (
     <div style={{
+      position: 'fixed',
+      bottom: 24,
+      right: 24,
+      width: 360,
+      zIndex: 200,
       background: 'var(--white)',
       borderRadius: 'var(--radius-lg)',
       border: '1px solid var(--border)',
-      boxShadow: 'var(--shadow-md)',
+      boxShadow: '0 8px 32px rgba(0,0,0,.15)',
       display: 'flex',
       flexDirection: 'column',
       height: minimized ? 'auto' : 480,
@@ -186,10 +201,14 @@ Instrucciones:
             <circle cx="15" cy="10" r="1" fill="currentColor"/>
           </svg>
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>IA Asistente</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)' }}>
-            {loading ? 'Escribiendo…' : '● En línea'}
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {loadingContext
+              ? 'Detectando proyecto…'
+              : proyectoNombre
+                ? `📁 ${proyectoNombre}`
+                : loading ? 'Escribiendo…' : '● En línea'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
@@ -198,28 +217,22 @@ Instrucciones:
               onClick={clearChat}
               title="Limpiar chat"
               style={{ color: 'rgba(255,255,255,.7)', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 4px', borderRadius: 4, fontSize: 12 }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
-            >
-              ↺
-            </button>
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
+            >↺</button>
           )}
           <button
             onClick={() => setMinimized(!minimized)}
             style={{ color: 'rgba(255,255,255,.7)', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 6px', borderRadius: 4, fontSize: 16, lineHeight: 1 }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
-          >
-            {minimized ? '▲' : '▼'}
-          </button>
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
+          >{minimized ? '▲' : '▼'}</button>
           <button
             onClick={() => setOpen(false)}
             style={{ color: 'rgba(255,255,255,.7)', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 6px', borderRadius: 4, fontSize: 16, lineHeight: 1 }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
-          >
-            ×
-          </button>
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,.7)'}
+          >×</button>
         </div>
       </div>
 
@@ -245,7 +258,11 @@ Instrucciones:
                     Asistente IA
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
-                    Puedo ayudarte a analizar tu sprint, detectar riesgos y priorizar tareas.
+                    {loadingContext
+                      ? 'Cargando contexto del proyecto…'
+                      : proyectoNombre
+                        ? `Consultando datos de "${proyectoNombre}".`
+                        : 'Puedo ayudarte a analizar tu sprint, detectar riesgos y priorizar tareas.'}
                   </div>
                 </div>
 
@@ -255,10 +272,11 @@ Instrucciones:
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {QUICK_OPTIONS.map((opt) => (
+                  {QUICK_OPTIONS.map(opt => (
                     <button
                       key={opt.label}
                       onClick={() => sendMessage(opt.prompt)}
+                      disabled={loadingContext}
                       style={{
                         textAlign: 'left',
                         padding: '8px 12px',
@@ -267,16 +285,19 @@ Instrucciones:
                         border: '1px solid var(--border)',
                         fontSize: 12.5,
                         color: 'var(--navy)',
-                        cursor: 'pointer',
+                        cursor: loadingContext ? 'default' : 'pointer',
+                        opacity: loadingContext ? 0.5 : 1,
                         transition: 'all .15s',
                         display: 'flex', alignItems: 'center', gap: 8,
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--accent-light)'
-                        e.currentTarget.style.borderColor = 'var(--accent)'
-                        e.currentTarget.style.color = 'var(--accent)'
+                      onMouseEnter={e => {
+                        if (!loadingContext) {
+                          e.currentTarget.style.background = 'var(--accent-light)'
+                          e.currentTarget.style.borderColor = 'var(--accent)'
+                          e.currentTarget.style.color = 'var(--accent)'
+                        }
                       }}
-                      onMouseLeave={(e) => {
+                      onMouseLeave={e => {
                         e.currentTarget.style.background = 'var(--bg)'
                         e.currentTarget.style.borderColor = 'var(--border)'
                         e.currentTarget.style.color = 'var(--navy)'
@@ -305,9 +326,8 @@ Instrucciones:
             background: 'var(--white)',
           }}>
             <textarea
-              ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Pregunta algo al asistente…"
               rows={1}
@@ -326,19 +346,19 @@ Instrucciones:
                 overflowY: 'auto',
                 transition: 'border-color .15s',
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
             <button
               onClick={() => sendMessage()}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || !proyectoId}
               style={{
                 width: 34, height: 34,
                 borderRadius: 8,
-                background: input.trim() && !loading ? 'var(--accent)' : 'var(--border-light)',
-                color: input.trim() && !loading ? 'white' : 'var(--muted)',
+                background: input.trim() && !loading && proyectoId ? 'var(--accent)' : 'var(--border-light)',
+                color: input.trim() && !loading && proyectoId ? 'white' : 'var(--muted)',
                 border: 'none',
-                cursor: input.trim() && !loading ? 'pointer' : 'default',
+                cursor: input.trim() && !loading && proyectoId ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
                 transition: 'all .15s',

@@ -100,4 +100,9 @@ export const aiApi = {
   chat: (messages, system) => post('/ai/chat', { messages, system }),
 }
 
-export default { authApi, proyectosApi, tareasApi, sprintsApi, kpisApi, usuariosApi, aiApi }
+// RAG Chat — uses Groq + ORDS for context-aware project queries
+export const ragApi = {
+  chat: (proyectoId, pregunta) => post('/rag/chat', { proyectoId, pregunta }),
+}
+
+export default { authApi, proyectosApi, tareasApi, sprintsApi, kpisApi, usuariosApi, aiApi, ragApi }

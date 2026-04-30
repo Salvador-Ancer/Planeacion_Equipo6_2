@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SprintOverview from '../components/dashboard/SprintOverview'
 import KPIBox from '../components/dashboard/KPIBox'
-import ChatWidget from '../components/ai/ChatWidget'
 import Card from '../components/common/Card'
 import { tareasApi } from '../services/api'
 
@@ -167,12 +166,6 @@ export default function Dashboard() {
       </div>
 
       {/* Right / Chat column */}
-      <div style={{
-        width: 300, flexShrink: 0,
-        animation: 'slideIn .35s ease .1s both',
-      }}>
-        <ChatWidget sprintData={null} projectData={null} />
-      </div>
     </div>
   )
 }
