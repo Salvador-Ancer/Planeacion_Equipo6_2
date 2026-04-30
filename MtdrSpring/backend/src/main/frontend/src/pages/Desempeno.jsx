@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Card from '../components/common/Card'
-import { tareasApi, usuariosApi, proyectosApi } from '../services/api'
+import { tareasApi, usuariosApi } from '../services/api'
 
 function StatBar({ value, max, color }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
@@ -16,21 +16,12 @@ export default function Desempeno() {
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    Promise.all([proyectosApi.getAll(), tareasApi.getAll(), usuariosApi.getAll()])
-      .then(([proyectos, tareas, usuarios]) => {
-        // Scope to projects that belong to this admin's context (all projects they can see)
-        // Client-side join: collect unique asignadoA from tasks in these projects
-        const proyectoIds = new Set(proyectos.map(p => p.id))
-        const tareasEnProyectos = tareas.filter(t => proyectoIds.has(t.proyectoId))
-        const asignadosIds = new Set(
-          tareasEnProyectos.map(t => t.asignadoA).filter(id => id != null)
-        )
-
-        // Only include users who are assigned to at least one task in the admin's projects
-        const devs = usuarios.filter(u => asignadosIds.has(u.id))
+    Promise.all([tareasApi.getAll(), usuariosApi.getAll()])
+      .then(([tareas, usuarios]) => {
+        const devs = usuarios.filter(u => u.rol === 'Developer')
 
         const stats = devs.map(dev => {
-          const myTasks      = tareasEnProyectos.filter(t => t.asignadoA === dev.id)
+          const myTasks      = tareas.filter(t => Number(t.asignadoA) === Number(dev.id))
           const completadas  = myTasks.filter(t => t.estatus === 'Completado').length
           const enProgreso   = myTasks.filter(t => t.estatus === 'En Progreso').length
           const bloqueadas   = myTasks.filter(t => t.estatus === 'Bloqueado').length

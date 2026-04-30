@@ -97,23 +97,29 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
           {cfg.label}
         </button>
       ))}
-      <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0' }} />
-      <button
-        onClick={() => { onEdit?.(task); closeMenu() }}
-        style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#1B1F3B', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-        onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
-        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-      >
-        Editar tarea
-      </button>
-      <button
-        onClick={() => { onDelete?.(task.id); closeMenu() }}
-        style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#A85550', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-        onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
-        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-      >
-        Eliminar tarea
-      </button>
+      {(onEdit || onDelete) && (
+        <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0' }} />
+      )}
+      {onEdit && (
+        <button
+          onClick={() => { onEdit(task); closeMenu() }}
+          style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#1B1F3B', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+        >
+          Editar tarea
+        </button>
+      )}
+      {onDelete && (
+        <button
+          onClick={() => { onDelete(task.id); closeMenu() }}
+          style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: 12.5, color: '#A85550', borderRadius: 5, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+        >
+          Eliminar tarea
+        </button>
+      )}
     </div>,
     document.body
   )

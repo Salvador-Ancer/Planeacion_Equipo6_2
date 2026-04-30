@@ -93,13 +93,15 @@ export default function Analitica() {
     return row
   }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  // Horas reales por usuario/sprint
-  const horasData = sprintsScope.map(sprint => {
+  // Story Points completados por developer/sprint
+  const spData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
       row[getName(dev)] = tareasScope
-        .filter(t => t.sprintId === sprint.id && Number(t.asignadoA) === Number(dev.id))
-        .reduce((s, t) => s + (t.horasReales || 0), 0)
+        .filter(t => t.sprintId === sprint.id &&
+                     Number(t.asignadoA) === Number(dev.id) &&
+                     t.estatus === 'Completado')
+        .reduce((s, t) => s + (t.storyPoints || 0), 0)
     })
     return row
   }).filter(row => devsScope.some(d => row[getName(d)] > 0))
@@ -220,20 +222,20 @@ export default function Analitica() {
               )}
             </SECTION>
 
-            {/* horas reales por dev/sprint */}
+            {/* Story Points completados por dev/sprint */}
             <SECTION
-              title="Horas reales trabajadas por desarrollador / sprint"
-              subtitle="Carga de trabajo real: horas registradas por cada developer en cada sprint."
+              title="Story Points completados por desarrollador / sprint"
+              subtitle="Contribución individual: cuántos story points completó cada developer en cada sprint."
             >
-              {horasData.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '30px 0' }}>Sin horas registradas</div>
+              {spData.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '30px 0' }}>Sin story points completados</div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={horasData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                  <BarChart data={spData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
                     <XAxis dataKey="sprint" tick={{ fontSize: 11, fill: '#6B7280' }} />
-                    <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} />
-                    <Tooltip content={<CustomTooltip unit="h" />} />
+                    <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip unit=" pts" />} />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                     {devKeys.map((name, i) => (
                       <Bar key={name} dataKey={name} fill={DEV_COLORS[i % DEV_COLORS.length]} radius={[3, 3, 0, 0]} maxBarSize={28} />

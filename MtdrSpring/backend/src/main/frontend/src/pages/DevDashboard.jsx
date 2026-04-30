@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import TaskCard from '../components/tasks/TaskCard'
-import TaskForm from '../components/tasks/TaskForm'
-import Button from '../components/common/Button'
 import { tareasApi, sprintsApi, proyectosApi } from '../services/api'
 import { useAuth } from '../App'
+import Button from '../components/common/Button'
 
 const COLUMNS = [
   { key: 'Backlog',     label: 'Backlog',     color: 'var(--muted)',      dot: '#94A3B8' },
@@ -12,10 +11,61 @@ const COLUMNS = [
   { key: 'Completado',  label: 'Completado',  color: '#7A8C5A',           dot: '#7A8C5A' },
 ]
 
-const PRIORIDAD_COLOR = {
-  Alta:  '#A85550',
-  Media: '#D97706',
-  Baja:  '#16A34A',
+const STATUSES     = ['Backlog', 'En Progreso', 'Completado', 'Bloqueado']
+const PRIORIDAD_COLOR = { Alta: '#A85550', Media: '#D97706', Baja: '#16A34A' }
+
+function StatusModal({ task, onSave, onClose }) {
+  const [estatus, setEstatus] = useState(task.estatus)
+  const [loading, setLoading] = useState(false)
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      const updated = await tareasApi.update(task.id, { ...task, estatus })
+      onSave(updated)
+    } catch {
+      // keep open on error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 340, boxShadow: 'var(--shadow-lg)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Actualizar estado</h3>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
+        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
+          Estado
+        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+          {STATUSES.map(s => (
+            <button
+              key={s}
+              onClick={() => setEstatus(s)}
+              style={{
+                padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', textAlign: 'left',
+                border: `2px solid ${estatus === s ? 'var(--accent)' : 'var(--border)'}`,
+                background: estatus === s ? 'var(--accent-light)' : 'white',
+                color: estatus === s ? 'var(--accent)' : 'var(--navy)',
+                transition: 'all .15s',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" loading={loading} onClick={handleSave}>Guardar</Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function DevDashboard() {
@@ -26,7 +76,6 @@ export default function DevDashboard() {
   const [loading, setLoading]     = useState(true)
   const [view, setView]           = useState('kanban')
   const [search, setSearch]       = useState('')
-  const [showForm, setShowForm]   = useState(false)
   const [editTask, setEditTask]   = useState(null)
 
   useEffect(() => {
@@ -50,14 +99,8 @@ export default function DevDashboard() {
     setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
 
-  const handleDelete = (id) => {
-    tareasApi.delete(id).catch(() => {})
-    setTasks(prev => prev.filter(t => t.id !== id))
-  }
-
-  const handleSave = (saved) => {
-    setTasks(prev => editTask?.id ? prev.map(t => t.id === saved.id ? saved : t) : [...prev, saved])
-    setShowForm(false)
+  const handleStatusSave = (saved) => {
+    setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
     setEditTask(null)
   }
 
@@ -123,9 +166,9 @@ export default function DevDashboard() {
         </div>
       )}
 
-      {/* Main grid: tasks left, sidebar right */}
+      {/* Main grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16, alignItems: 'start', marginTop: 8 }}>
-        {/* ── Tasks panel ── */}
+        {/* Tasks panel */}
         <div>
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
@@ -158,7 +201,7 @@ export default function DevDashboard() {
             </div>
           )}
 
-          {/* KANBAN */}
+          {/* KANBAN — solo onUpdate, sin onEdit ni onDelete */}
           {view === 'kanban' && total > 0 && (
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
               {COLUMNS.map(col => (
@@ -173,7 +216,7 @@ export default function DevDashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {byStatus(col.key).map((task, i) => (
                       <div key={task.id} style={{ animation: `fadeIn .2s ease ${i * 0.05}s both` }}>
-                        <TaskCard task={task} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={() => { setEditTask(task); setShowForm(true) }} />
+                        <TaskCard task={task} onUpdate={handleUpdate} />
                       </div>
                     ))}
                     {byStatus(col.key).length === 0 && (
@@ -187,11 +230,11 @@ export default function DevDashboard() {
             </div>
           )}
 
-          {/* LIST */}
+          {/* LIST — solo botón cambiar estado */}
           {view === 'list' && total > 0 && (
             <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 120px 90px 76px' }}>
-                {['Tarea', 'Estado', 'Prioridad', 'Acciones'].map((h, idx) => (
+                {['Tarea', 'Estado', 'Prioridad', 'Acción'].map((h, idx) => (
                   <div key={h} style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 10.5, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em', textAlign: idx === 3 ? 'center' : 'left' }}>{h}</div>
                 ))}
                 {filtered.map((task) => {
@@ -205,12 +248,9 @@ export default function DevDashboard() {
                       <div style={{ padding: '12px 10px', borderBottom: '1px solid var(--border-light)', fontSize: 11.5, fontWeight: 600, color: PRIORIDAD_COLOR[task.prioridad] || 'var(--muted)' }}>
                         {task.prioridad || '—'}
                       </div>
-                      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 4, justifyContent: 'center', alignItems: 'center' }}>
-                        <Button size="sm" variant="ghost" onClick={() => { setEditTask(task); setShowForm(true) }}>
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDelete(task.id)}>
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditTask(task)}>
+                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
                         </Button>
                       </div>
                     </div>
@@ -226,9 +266,8 @@ export default function DevDashboard() {
           )}
         </div>
 
-        {/* ── Right sidebar ── */}
+        {/* Right sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* Sprints activos */}
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px' }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', margin: '0 0 12px' }}>Sprints activos</h3>
             {mySprints.length === 0 ? (
@@ -249,7 +288,6 @@ export default function DevDashboard() {
             )}
           </div>
 
-          {/* Mis proyectos */}
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px' }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', margin: '0 0 12px' }}>Mis proyectos</h3>
             {myProyectos.length === 0 ? (
@@ -268,18 +306,8 @@ export default function DevDashboard() {
         </div>
       </div>
 
-      {/* Edit modal */}
-      {showForm && editTask && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 300, animation: 'fadeIn .2s ease',
-        }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Editar tarea</h3>
-            <TaskForm task={editTask} onSuccess={handleSave} onCancel={() => { setShowForm(false); setEditTask(null) }} />
-          </div>
-        </div>
+      {editTask && (
+        <StatusModal task={editTask} onSave={handleStatusSave} onClose={() => setEditTask(null)} />
       )}
     </div>
   )

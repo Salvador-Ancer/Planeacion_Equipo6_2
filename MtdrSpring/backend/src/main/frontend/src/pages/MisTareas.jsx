@@ -1,9 +1,66 @@
 import { useState, useEffect } from 'react'
 import TaskCard from '../components/tasks/TaskCard'
-import TaskForm from '../components/tasks/TaskForm'
 import Button from '../components/common/Button'
 import { tareasApi } from '../services/api'
 import { useAuth } from '../App'
+
+const STATUSES = ['Backlog', 'En Progreso', 'Completado', 'Bloqueado']
+
+function StatusModal({ task, onSave, onClose }) {
+  const [estatus, setEstatus] = useState(task.estatus)
+  const [loading, setLoading] = useState(false)
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      const updated = await tareasApi.update(task.id, { ...task, estatus })
+      onSave(updated)
+    } catch {
+      // keep modal open on error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 340, boxShadow: 'var(--shadow-lg)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Actualizar estado</h3>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
+
+        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
+          Estado
+        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+          {STATUSES.map(s => (
+            <button
+              key={s}
+              onClick={() => setEstatus(s)}
+              style={{
+                padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', textAlign: 'left',
+                border: `2px solid ${estatus === s ? 'var(--accent)' : 'var(--border)'}`,
+                background: estatus === s ? 'var(--accent-light)' : 'white',
+                color: estatus === s ? 'var(--accent)' : 'var(--navy)',
+                transition: 'all .15s',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" loading={loading} onClick={handleSave}>Guardar</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // DB values: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
 const COLUMNS = [
@@ -18,7 +75,6 @@ export default function MisTareas() {
   const [tasks, setTasks]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [view, setView]         = useState('kanban')
-  const [showForm, setShowForm] = useState(false)
   const [editTask, setEditTask] = useState(null)
   const [search, setSearch]     = useState('')
 
@@ -35,18 +91,8 @@ export default function MisTareas() {
     setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
 
-  const handleDelete = (id) => {
-    tareasApi.delete(id).catch(() => {})
-    setTasks(prev => prev.filter(t => t.id !== id))
-  }
-
-  const handleSave = (saved) => {
-    if (editTask?.id) {
-      setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
-    } else {
-      setTasks(prev => [...prev, saved])
-    }
-    setShowForm(false)
+const handleStatusSave = (saved) => {
+    setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
     setEditTask(null)
   }
 
@@ -110,11 +156,6 @@ export default function MisTareas() {
           ))}
         </div>
 
-        <Button variant="primary" size="sm"
-          icon={<svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
-          onClick={() => { setEditTask(null); setShowForm(true) }}>
-          Nueva tarea
-        </Button>
       </div>
 
       {loading && (
@@ -142,7 +183,7 @@ export default function MisTareas() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {byStatus(col.key).map((task, i) => (
                   <div key={task.id} style={{ animation: `fadeIn .2s ease ${i * 0.05}s both` }}>
-                    <TaskCard task={task} onUpdate={handleUpdate} onDelete={handleDelete} />
+                    <TaskCard task={task} onUpdate={handleUpdate} />
                   </div>
                 ))}
                 {byStatus(col.key).length === 0 && (
@@ -175,11 +216,8 @@ export default function MisTareas() {
                     {task.prioridad || '—'}
                   </div>
                   <div style={{ padding: '10px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 4, animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                    <Button size="sm" variant="ghost" onClick={() => { setEditTask(task); setShowForm(true) }}>
+                    <Button size="sm" variant="ghost" onClick={() => setEditTask(task)}>
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(task.id)}>
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </Button>
                   </div>
                 </div>
@@ -194,18 +232,8 @@ export default function MisTareas() {
         </div>
       )}
 
-      {/* Task form modal */}
-      {showForm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 300, animation: 'fadeIn .2s ease',
-        }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>{editTask?.id ? 'Editar tarea' : 'Nueva tarea'}</h3>
-            <TaskForm task={editTask} onSuccess={handleSave} onCancel={() => { setShowForm(false); setEditTask(null) }} />
-          </div>
-        </div>
+      {editTask && (
+        <StatusModal task={editTask} onSave={handleStatusSave} onClose={() => setEditTask(null)} />
       )}
     </div>
   )

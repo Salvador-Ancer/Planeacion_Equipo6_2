@@ -85,6 +85,7 @@ public class TareaController {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
         tarea.setId(id);
+        tarea.setActualizadoEn(new java.util.Date());
         return ResponseEntity.ok(tareaService.guardar(tarea));
     }
 
