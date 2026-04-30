@@ -2,6 +2,7 @@ package com.springboot.MyTodoList.controller;
 
 import com.springboot.MyTodoList.model.Tarea;
 import com.springboot.MyTodoList.service.TareaService;
+import com.springboot.MyTodoList.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +15,11 @@ import java.util.Optional;
 public class TareaController {
 
     private final TareaService tareaService;
+    private final UsuarioService usuarioService;
 
-    public TareaController(TareaService tareaService) {
+    public TareaController(TareaService tareaService, UsuarioService usuarioService) {
         this.tareaService = tareaService;
+        this.usuarioService = usuarioService;
     }
 
     // GET /tareas
@@ -45,7 +48,7 @@ public class TareaController {
         return tareaService.obtenerPorPrioridad(prioridad);
     }
 
-    // GET /tareas/asignado/{userId} — tareas asignadas a un usuario
+    // GET /tareas/asignado/{userId}
     @GetMapping("/asignado/{userId}")
     public List<Tarea> getByAsignado(@PathVariable Long userId) {
         return tareaService.obtenerPorAsignado(userId);
@@ -65,7 +68,10 @@ public class TareaController {
 
     // POST /tareas
     @PostMapping
-    public ResponseEntity<Tarea> create(@RequestBody Tarea tarea) {
+    public ResponseEntity<?> create(@RequestBody Tarea tarea) {
+        if (tarea.getNombre() == null || tarea.getNombre().isBlank()) {
+            return ResponseEntity.badRequest().body("El campo 'nombre' es obligatorio");
+        }
         if (tarea.getId() == null) {
             tarea.setId(System.currentTimeMillis());
         }
@@ -84,8 +90,14 @@ public class TareaController {
     public ResponseEntity<Tarea> update(@PathVariable Long id, @RequestBody Tarea tarea) {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        Tarea existente = existing.get();
         tarea.setId(id);
         tarea.setActualizadoEn(new java.util.Date());
+        if (tarea.getBorrado() == null) tarea.setBorrado(existente.getBorrado());
+        if (tarea.getFechaCreacion() == null) tarea.setFechaCreacion(existente.getFechaCreacion());
+        if (tarea.getAsignadoA() != null && usuarioService.obtenerPorId(tarea.getAsignadoA()).isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(tareaService.guardar(tarea));
     }
 
