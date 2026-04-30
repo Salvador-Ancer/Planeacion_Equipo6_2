@@ -1,6 +1,6 @@
 // Base URL — CORS is open on backend, so we call Spring Boot directly in dev.
 // In production set VITE_API_URL to the deployed backend origin.
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 async function request(method, path, body = null) {
   const headers = { 'Content-Type': 'application/json' }
