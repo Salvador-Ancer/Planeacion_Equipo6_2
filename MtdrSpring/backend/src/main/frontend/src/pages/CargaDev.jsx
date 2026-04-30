@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { usuariosApi, tareasApi } from '../services/api'
 
-const DEV_ROLES = ['Developer', 'Product Owner', 'Scrum Master']
+const DEV_ROLES = ['Developer']
 
 function capacidadLabel(enProgreso) {
   if (enProgreso === 0) return { label: 'Disponible', bg: '#F0F2EC', color: '#7A8C5A' }
