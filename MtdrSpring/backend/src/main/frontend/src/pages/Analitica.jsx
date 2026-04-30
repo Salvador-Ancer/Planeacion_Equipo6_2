@@ -39,11 +39,12 @@ const CustomTooltip = ({ active, payload, label, unit = '' }) => {
 }
 
 export default function Analitica() {
-  const [tareas,    setTareas]    = useState([])
-  const [sprints,   setSprints]   = useState([])
-  const [proyectos, setProyectos] = useState([])
-  const [usuarios,  setUsuarios]  = useState([])
-  const [loading,   setLoading]   = useState(true)
+  const [tareas,         setTareas]         = useState([])
+  const [sprints,        setSprints]        = useState([])
+  const [proyectos,      setProyectos]      = useState([])
+  const [usuarios,       setUsuarios]       = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [filterProyecto, setFilterProyecto] = useState('ALL')
 
   useEffect(() => {
     Promise.all([tareasApi.getAll(), sprintsApi.getAll(), proyectosApi.getAll(), usuariosApi.getAll()])
@@ -52,14 +53,10 @@ export default function Analitica() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Derived data 
-
-  const devs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner'].includes(u.rol))
-    .slice(0, 8)
-
+  const allDevs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner'].includes(u.rol))
   const getName = (u) => (u.fullName || u.email || `Dev ${u.id}`).split(' ')[0]
 
-  // KPI summary
+  // KPI summary (global)
   const total       = tareas.length
   const completadas = tareas.filter(t => t.estatus === 'Completado').length
   const bloqueadas  = tareas.filter(t => t.estatus === 'Bloqueado').length
@@ -68,51 +65,70 @@ export default function Analitica() {
     ? (tareas.reduce((s, t) => s + (t.horasReales || 0), 0) / total).toFixed(1)
     : 0
 
-  // Tareas completadas por usuario/sprint 
-  const tareasCompletadasData = sprints.map(sprint => {
+  // ── Scoped data for charts 1 & 2 ────────────────────────────────────────────
+  const sprintsScope = filterProyecto === 'ALL'
+    ? sprints
+    : sprints.filter(s => String(s.proyectoId) === filterProyecto)
+
+  const tareasScope = filterProyecto === 'ALL'
+    ? tareas
+    : tareas.filter(t => String(t.proyectoId) === filterProyecto)
+
+  // Only devs with at least one task in the scoped sprints
+  const sprintIds = new Set(sprintsScope.map(s => s.id))
+  const devsScope = allDevs.filter(dev =>
+    tareasScope.some(t => sprintIds.has(t.sprintId) && Number(t.asignadoA) === Number(dev.id))
+  ).slice(0, 8)
+
+  // Tareas completadas por usuario/sprint
+  const tareasCompletadasData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
-    devs.forEach(dev => {
-      row[getName(dev)] = tareas.filter(
+    devsScope.forEach(dev => {
+      row[getName(dev)] = tareasScope.filter(
         t => t.sprintId === sprint.id &&
              Number(t.asignadoA) === Number(dev.id) &&
              t.estatus === 'Completado'
       ).length
     })
     return row
-  }).filter(row => devs.some(d => row[getName(d)] > 0))
+  }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  // Horas reales por usuario/sprint 
-  const horasData = sprints.map(sprint => {
+  // Horas reales por usuario/sprint
+  const horasData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
-    devs.forEach(dev => {
-      row[getName(dev)] = tareas
+    devsScope.forEach(dev => {
+      row[getName(dev)] = tareasScope
         .filter(t => t.sprintId === sprint.id && Number(t.asignadoA) === Number(dev.id))
         .reduce((s, t) => s + (t.horasReales || 0), 0)
     })
     return row
-  }).filter(row => devs.some(d => row[getName(d)] > 0))
+  }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  // Estado de tareas (pie) 
+  // Estado de tareas (pie — filtrado)
   const statusPie = [
-    { name: 'Completado',  value: tareas.filter(t => t.estatus === 'Completado').length,  color: '#7A8C5A' },
-    { name: 'En Progreso', value: tareas.filter(t => t.estatus === 'En Progreso').length, color: '#374151' },
-    { name: 'Backlog',     value: tareas.filter(t => t.estatus === 'Backlog').length,     color: '#94A3B8' },
-    { name: 'Bloqueado',   value: tareas.filter(t => t.estatus === 'Bloqueado').length,   color: '#A85550' },
+    { name: 'Completado',  value: tareasScope.filter(t => t.estatus === 'Completado').length,  color: '#7A8C5A' },
+    { name: 'En Progreso', value: tareasScope.filter(t => t.estatus === 'En Progreso').length, color: '#374151' },
+    { name: 'Backlog',     value: tareasScope.filter(t => t.estatus === 'Backlog').length,     color: '#94A3B8' },
+    { name: 'Bloqueado',   value: tareasScope.filter(t => t.estatus === 'Bloqueado').length,   color: '#A85550' },
   ].filter(d => d.value > 0)
 
-  // Story points completados por sprint (line) 
-  const velocityData = sprints.map(sprint => ({
+  // Story points completados por sprint (line — filtrado)
+  const velocityData = sprintsScope.map(sprint => ({
     sprint: sprint.nombre,
-    'Story Points': tareas
+    'Story Points': tareasScope
       .filter(t => t.sprintId === sprint.id && t.estatus === 'Completado')
       .reduce((s, t) => s + (t.storyPoints || 0), 0),
-    'Tareas': tareas.filter(t => t.sprintId === sprint.id && t.estatus === 'Completado').length,
+    'Tareas': tareasScope.filter(t => t.sprintId === sprint.id && t.estatus === 'Completado').length,
   })).filter(d => d['Story Points'] > 0 || d['Tareas'] > 0)
 
-  // Avance por proyecto (barras horizontales) 
-  const proyectoData = proyectos.map(p => {
-    const pTasks   = tareas.filter(t => t.proyectoId === p.id)
-    const done     = pTasks.filter(t => t.estatus === 'Completado').length
+  // Avance por proyecto (barras horizontales — filtrado)
+  const proyectosScope = filterProyecto === 'ALL'
+    ? proyectos
+    : proyectos.filter(p => String(p.id) === filterProyecto)
+
+  const proyectoData = proyectosScope.map(p => {
+    const pTasks = tareas.filter(t => t.proyectoId === p.id)
+    const done   = pTasks.filter(t => t.estatus === 'Completado').length
     return {
       proyecto: p.nombre.length > 18 ? p.nombre.slice(0, 16) + '…' : p.nombre,
       Completadas: done,
@@ -121,7 +137,7 @@ export default function Analitica() {
     }
   }).filter(p => p.total > 0)
 
-  const devKeys = devs.map(getName)
+  const devKeys = devsScope.map(getName)
   const hasSprintData = tareasCompletadasData.length > 0
 
   return (
@@ -157,6 +173,26 @@ export default function Analitica() {
 
       {!loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Filtro de proyecto para las dos primeras gráficas */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              Proyecto
+            </span>
+            <select
+              value={filterProyecto}
+              onChange={e => setFilterProyecto(e.target.value)}
+              style={{ height: 32, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white', color: 'var(--navy)' }}
+            >
+              <option value="ALL">Todos los proyectos</option>
+              {proyectos.map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
+            </select>
+            {filterProyecto !== 'ALL' && (
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                {sprintsScope.length} sprint{sprintsScope.length !== 1 ? 's' : ''} · {devsScope.length} desarrollador{devsScope.length !== 1 ? 'es' : ''}
+              </span>
+            )}
+          </div>
 
           {/* primera columna */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -262,7 +298,7 @@ export default function Analitica() {
                       </div>
                     ))}
                     <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 6, marginTop: 2 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total: <strong style={{ color: 'var(--navy)' }}>{total}</strong> tareas</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total: <strong style={{ color: 'var(--navy)' }}>{tareasScope.length}</strong> tareas</div>
                     </div>
                   </div>
                 </div>
