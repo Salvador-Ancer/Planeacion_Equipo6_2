@@ -27,4 +27,11 @@ jobs:
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: false   
+          VALIDATE_ALL_CODEBASE: false
+          # Desactivar linters que no aplican al proyecto
+          VALIDATE_CHECKOV: false
+          VALIDATE_JSCPD: false
+          VALIDATE_YAML_PRETTIER: false
+          # Linters útiles para Node.js / JavaScript
+          VALIDATE_JAVASCRIPT_ES: true
+          VALIDATE_JSON: true
