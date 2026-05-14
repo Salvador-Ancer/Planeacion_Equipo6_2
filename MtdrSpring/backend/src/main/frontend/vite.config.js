@@ -9,10 +9,14 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      }
+      '/auth':      { target: 'http://localhost:8080', changeOrigin: true },
+      '/proyectos': { target: 'http://localhost:8080', changeOrigin: true },
+      '/tareas':    { target: 'http://localhost:8080', changeOrigin: true },
+      '/sprints':   { target: 'http://localhost:8080', changeOrigin: true },
+      '/kpis':      { target: 'http://localhost:8080', changeOrigin: true },
+      '/usuarios':  { target: 'http://localhost:8080', changeOrigin: true },
+      '/ai':        { target: 'http://localhost:8080', changeOrigin: true },
+      '/rag':       { target: 'http://localhost:8080', changeOrigin: true },
     }
   }
 })
