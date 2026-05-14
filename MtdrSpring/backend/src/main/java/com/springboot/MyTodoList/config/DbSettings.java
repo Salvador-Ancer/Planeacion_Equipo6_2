@@ -12,6 +12,7 @@ public class DbSettings {
     private String username;
     private String password;
     private String driver_class_name;
+    private String tnsAdmin;
 
     public String getUrl() {
         return url;
@@ -43,5 +44,13 @@ public class DbSettings {
 
     public void setDriver_class_name(String driver_class_name) {
         this.driver_class_name = driver_class_name;
+    }
+
+    public String getTnsAdmin() {
+        return tnsAdmin;
+    }
+
+    public void setTnsAdmin(String tnsAdmin) {
+        this.tnsAdmin = tnsAdmin;
     }
 }

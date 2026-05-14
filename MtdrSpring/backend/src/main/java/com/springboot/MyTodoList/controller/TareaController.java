@@ -2,6 +2,7 @@ package com.springboot.MyTodoList.controller;
 
 import com.springboot.MyTodoList.model.Tarea;
 import com.springboot.MyTodoList.service.TareaService;
+import com.springboot.MyTodoList.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,18 +15,20 @@ import java.util.Optional;
 public class TareaController {
 
     private final TareaService tareaService;
+    private final UsuarioService usuarioService;
 
-    public TareaController(TareaService tareaService) {
+    public TareaController(TareaService tareaService, UsuarioService usuarioService) {
         this.tareaService = tareaService;
+        this.usuarioService = usuarioService;
     }
 
-    // GET /tareas — obtener todas
+    // GET /tareas
     @GetMapping
     public List<Tarea> getAll() {
         return tareaService.obtenerTodas();
     }
 
-    // GET /tareas/{id} — obtener por ID
+    // GET /tareas/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Tarea> getById(@PathVariable Long id) {
         Optional<Tarea> tarea = tareaService.obtenerPorId(id);
@@ -33,35 +36,72 @@ public class TareaController {
                     .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET /tareas/estatus/{estatus} — filtrar por estatus
+    // GET /tareas/estatus/{estatus}
     @GetMapping("/estatus/{estatus}")
     public List<Tarea> getByEstatus(@PathVariable String estatus) {
         return tareaService.obtenerPorEstatus(estatus);
     }
 
-    // GET /tareas/prioridad/{prioridad} — filtrar por prioridad
+    // GET /tareas/prioridad/{prioridad}
     @GetMapping("/prioridad/{prioridad}")
     public List<Tarea> getByPrioridad(@PathVariable String prioridad) {
         return tareaService.obtenerPorPrioridad(prioridad);
     }
 
-    // POST /tareas — crear nueva tarea
+    // GET /tareas/asignado/{userId}
+    @GetMapping("/asignado/{userId}")
+    public List<Tarea> getByAsignado(@PathVariable Long userId) {
+        return tareaService.obtenerPorAsignado(userId);
+    }
+
+    // GET /tareas/sprint/{sprintId}
+    @GetMapping("/sprint/{sprintId}")
+    public List<Tarea> getBySprint(@PathVariable Long sprintId) {
+        return tareaService.obtenerPorSprint(sprintId);
+    }
+
+    // GET /tareas/proyecto/{proyectoId}
+    @GetMapping("/proyecto/{proyectoId}")
+    public List<Tarea> getByProyecto(@PathVariable Long proyectoId) {
+        return tareaService.obtenerPorProyecto(proyectoId);
+    }
+
+    // POST /tareas
     @PostMapping
-    public ResponseEntity<Tarea> create(@RequestBody Tarea tarea) {
+    public ResponseEntity<?> create(@RequestBody Tarea tarea) {
+        if (tarea.getNombre() == null || tarea.getNombre().isBlank()) {
+            return ResponseEntity.badRequest().body("El campo 'nombre' es obligatorio");
+        }
+        if (tarea.getId() == null) {
+            tarea.setId(System.currentTimeMillis());
+        }
+        if (tarea.getBorrado() == null) {
+            tarea.setBorrado(0);
+        }
+        if (tarea.getFechaCreacion() == null) {
+            tarea.setFechaCreacion(new java.util.Date());
+        }
         Tarea saved = tareaService.guardar(tarea);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // PUT /tareas/{id} — actualizar tarea
+    // PUT /tareas/{id}
     @PutMapping("/{id}")
     public ResponseEntity<Tarea> update(@PathVariable Long id, @RequestBody Tarea tarea) {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        Tarea existente = existing.get();
         tarea.setId(id);
+        tarea.setActualizadoEn(new java.util.Date());
+        if (tarea.getBorrado() == null) tarea.setBorrado(existente.getBorrado());
+        if (tarea.getFechaCreacion() == null) tarea.setFechaCreacion(existente.getFechaCreacion());
+        if (tarea.getAsignadoA() != null && usuarioService.obtenerPorId(tarea.getAsignadoA()).isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(tareaService.guardar(tarea));
     }
 
-    // DELETE /tareas/{id} — eliminar tarea
+    // DELETE /tareas/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Optional<Tarea> existing = tareaService.obtenerPorId(id);
