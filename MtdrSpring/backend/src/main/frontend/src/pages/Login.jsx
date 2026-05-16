@@ -105,7 +105,7 @@ export default function Login() {
           animation: 'fadeIn .4s ease',
         }}>
           <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B1F3B', marginBottom: 6 }}>
-            Maria Cavada1
+            test/ci/cd
           </h2>
           <br />
 
