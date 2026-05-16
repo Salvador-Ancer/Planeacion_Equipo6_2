@@ -25,6 +25,12 @@ steps:
              cat at.cfg | docker login -u "axe5wdod0see/a00840038@tec.mx" --password-stdin mx-queretaro-1.ocir.io
 
   - type: Command
+    name: "Maven Build"
+    command: export PATH=/usr/lib/jvm/java-17-openjdk/bin:$PATH;
+             cd MtdrSpring/backend;
+             ./mvnw package -DskipTests
+
+  - type: Command
     name: "Build"
     command: export PATH=/usr/lib/jvm/java-17-openjdk/bin:$PATH;
              cd MtdrSpring;
@@ -35,29 +41,23 @@ steps:
     name: "Install K8s"
     command: mkdir -p $HOME/.kube;
              cd $HOME;
-             ls -la;
-             mkdir k8s;
-             ls -la;
+             mkdir -p k8s;
              cd k8s;
              wget https://dl.k8s.io/v1.31.2/bin/linux/amd64/kubectl;
-             ls -la;
              chmod +x kubectl;
              export PATH=$PATH:$HOME/k8s;
              kubectl version --client;
-             cd ..;
-             cd .kube;
-             oci ce cluster create-kubeconfig --cluster-id oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.mx-queretaro-1.aaaaaaaaeeklnmbx6fajnmf645x2w5eyjsenc5qzocfj4ovxycy6mwf7apkq --file $HOME/.kube/config --region mx-queretaro-1 --token-version 2.0.0  --kube-endpoint PUBLIC_ENDPOINT;
+             cd $HOME/.kube;
+             oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.mx-queretaro-1.aaaaaaaaeeklnmbx6fajnmf645x2w5eyjsenc5qzocfj4ovxycy6mwf7apkq --file $HOME/.kube/config --region mx-queretaro-1 --token-version 2.0.0 --kube-endpoint PUBLIC_ENDPOINT;
              export KUBECONFIG=$HOME/.kube/config;
 
   - type: Command
     name: "Undeploy"
     ignoreFailure: True
     command: export PATH=$PATH:$HOME/k8s;
-             kubectl version;
              export KUBECONFIG=$HOME/.kube/config;
              cd MtdrSpring;
              source env.sh;
              cd backend;
-             ls -l;
              kubectl config view;
              source undeploy.sh;
