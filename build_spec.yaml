@@ -58,8 +58,6 @@ steps:
     ignoreFailure: True
     command: export PATH=$PATH:$HOME/k8s;
              export KUBECONFIG=$HOME/.kube/config;
-             cd MtdrSpring;
-             source env.sh;
-             cd backend;
-             kubectl config view;
-             source undeploy.sh;
+             kubectl delete deployment todolistapp-springboot-deployment -n default --ignore-not-found;
+             kubectl delete service todolistapp-springboot-service -n default --ignore-not-found;
+             kubectl delete service todolistapp-backend-router -n default --ignore-not-found;

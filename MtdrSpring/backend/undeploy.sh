@@ -1,3 +1,4 @@
 echo delete frontend deployment and service...
-kubectl -n mtdrworkshop delete deployment todolistapp-springboot-deployment
-kubectl -n mtdrworkshop delete service todolistapp-springboot-service
+kubectl -n default delete deployment todolistapp-springboot-deployment-c55f89769-6zs6b --ignore-not-found
+kubectl -n default delete deployment todolistapp-springboot-deployment-c55f89769-jnm9d --ignore-not-found
+kubectl -n default delete service todolistapp-springboot-service --ignore-not-found
