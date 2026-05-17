@@ -258,7 +258,7 @@ export default function DevDashboard() {
             </div>
           )}
 
-          {/* KANBAN — solo onUpdate, sin onEdit ni onDelete */}
+          {/*solo onUpdate tarea */}
           {view === 'kanban' && total > 0 && (
             <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
               {COLUMNS.map(col => (
@@ -287,7 +287,7 @@ export default function DevDashboard() {
             </div>
           )}
 
-          {/* LIST — solo botón cambiar estado */}
+          {/* botón cambiar estado */}
           {view === 'list' && total > 0 && (
             <div style={{ background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 120px 90px 76px' }}>

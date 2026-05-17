@@ -201,7 +201,7 @@ export default function Analitica() {
       {!loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* Filtro de proyecto para las dos primeras gráficas */}
+          {/* filtro de proyecto para las dos primeras graficas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               Proyecto
@@ -297,7 +297,7 @@ export default function Analitica() {
               )}
             </SECTION>
 
-            {/* Distribución de estados - pie */}
+            {/* distribución de estados - pie */}
             <SECTION
               title="Distribución de tareas por estado"
               subtitle="Proporción actual de tareas en cada etapa del flujo de trabajo."
@@ -334,7 +334,7 @@ export default function Analitica() {
             </SECTION>
           </div>
 
-          {/* Avance por proyecto - barras apiladas */}
+          {/* avance por proyecto - barras horizontales */}
           {proyectoData.length > 0 && (
             <SECTION
               title="Avance por proyecto"

@@ -111,7 +111,7 @@ function QuickStatusModal({ task, onComplete, onSave, onClose }) {
   )
 }
 
-// DB values: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
+// valores de bd
 const COLUMNS = [
   { key: 'Backlog',     label: 'Backlog',     color: 'var(--muted)',      dot: '#94A3B8' },
   { key: 'En Progreso', label: 'En progreso', color: 'var(--accent)',     dot: 'var(--accent)' },

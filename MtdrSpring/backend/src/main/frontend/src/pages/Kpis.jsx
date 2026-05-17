@@ -25,13 +25,13 @@ export default function Kpis() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Reset sprint filter when project changes
+  // reset el filtro de sprint cuando se selecciona un proyecto
   const handleProyectoChange = (val) => {
     setFilterProyecto(val)
     setFilterSprint('ALL')
   }
 
-  // Only show sprints belonging to the selected project
+  // solo muestra los sprints del proyecto seleccionado
   const sprintsForFilter = filterProyecto === 'ALL'
     ? []
     : sprints.filter(s => String(s.proyectoId) === filterProyecto)
@@ -50,7 +50,7 @@ export default function Kpis() {
     : 0
   const enObjetivo = filtered.filter(k => k.valorMeta && k.valorActual >= k.valorMeta * 0.9).length
 
-  // Per-project summaries for the ALL view
+  // summary por proyecto
   const projectSummaries = proyectos.map(p => {
     const projectKpis = kpis.filter(k => k.proyectoId === p.id)
     const avanceKpi   = projectKpis.find(k => k.nombre === 'Avance del Proyecto' && !k.sprintId)
@@ -108,7 +108,7 @@ export default function Kpis() {
           {proyectos.map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
         </select>
 
-        {/* Sprint filter — only visible and populated when a project is selected */}
+        {/* sprint filter */}
         {filterProyecto !== 'ALL' && (
           <select
             value={filterSprint}
@@ -139,7 +139,7 @@ export default function Kpis() {
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Cargando KPIs…</div>
       )}
 
-      {/* ALL PROJECTS — summary cards per project */}
+      {/* todos los proyectos — summary por proyecto */}
       {!loading && filterProyecto === 'ALL' && (
         projectSummaries.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
@@ -193,7 +193,7 @@ export default function Kpis() {
                     </div>
                   )}
 
-                  {/* KPI counts */}
+                  {/* KPI # */}
                   <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border-light)', paddingTop: 12, marginTop: 4 }}>
                     <div style={{ flex: 1, textAlign: 'center' }}>
                       <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{total}</div>
@@ -217,7 +217,7 @@ export default function Kpis() {
         )
       )}
 
-      {/* SPECIFIC PROJECT — individual KPI cards */}
+      {/* proyecto especifico — card individual por kpi */}
       {!loading && filterProyecto !== 'ALL' && filtered.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
           No hay KPIs disponibles para esta selección
