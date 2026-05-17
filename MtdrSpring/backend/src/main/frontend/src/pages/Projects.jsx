@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
-import { proyectosApi, tareasApi } from '../services/api'
+import { proyectosApi, tareasApi, sprintsApi } from '../services/api'
 import { useAuth } from '../App'
 
 // estatus values from DB: 'Planeado' | 'En Progreso' | 'Completado' | 'Cancelado'
@@ -12,7 +12,7 @@ const STATUS_CONFIG = {
   'Cancelado':   { label: 'Cancelado',   color: '#A85550', bg: '#FEE2E2' },
 }
 
-function ProjectCard({ project, taskStats, onEdit, canEdit }) {
+function ProjectCard({ project, taskStats, onEdit, onDelete, canEdit }) {
   const st = STATUS_CONFIG[project.estatus] || STATUS_CONFIG['Planeado']
   const done  = taskStats?.completadas ?? 0
   const total = taskStats?.total       ?? 0
@@ -56,7 +56,23 @@ function ProjectCard({ project, taskStats, onEdit, canEdit }) {
           {' → '}
           {project.fechaFin ? new Date(project.fechaFin).toLocaleDateString('es-MX') : '—'}
         </span>
-        {canEdit && <Button size="sm" variant="outline" onClick={() => onEdit(project)}>Editar</Button>}
+        {canEdit && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button size="sm" variant="outline" onClick={() => onEdit(project)}>Editar</Button>
+            <button
+              onClick={() => onDelete(project)}
+              style={{
+                padding: '4px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                border: '1px solid #FECACA', background: '#FEF2F2', color: '#A85550',
+                cursor: 'pointer', transition: 'all .15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2' }}
+            >
+              Eliminar
+            </button>
+          </div>
+        )}
       </div>
     </Card>
   )
@@ -144,14 +160,92 @@ function ProjectModal({ project, onClose, onSave }) {
   )
 }
 
+function ConfirmDeleteModal({ project, onConfirm, onClose }) {
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState('')
+
+  const handleConfirm = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await onConfirm()
+    } catch (e) {
+      setError(e.message || 'Error al eliminar el proyecto')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400 }}
+      onClick={e => e.target === e.currentTarget && !loading && onClose()}
+    >
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)' }}>
+        {/* Icon + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="20" height="20" fill="none" stroke="#A85550" strokeWidth="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Eliminar proyecto</h3>
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>{project.nombre}</p>
+          </div>
+        </div>
+
+        {/* Warning box */}
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#A85550', marginBottom: 6 }}>
+            Esta acción no es reversible
+          </div>
+          <div style={{ fontSize: 12, color: '#A85550', lineHeight: 1.6 }}>
+            Al confirmar se eliminarán permanentemente:
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              <li>Todas las tareas del proyecto</li>
+              <li>Todos los sprints del proyecto</li>
+              <li>El proyecto y su información</li>
+            </ul>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ fontSize: 12, color: '#A85550', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            style={{
+              padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              border: 'none', background: loading ? '#E5E7EB' : '#A85550', color: 'white',
+              cursor: loading ? 'not-allowed' : 'pointer', transition: 'background .15s',
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9E3527' }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#A85550' }}
+          >
+            {loading ? 'Eliminando…' : 'Sí, eliminar proyecto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Projects() {
   const { user } = useAuth()
   const isDev = user?.rol === 'Developer'
 
-  const [projects, setProjects]   = useState([])
-  const [taskStats, setTaskStats] = useState({})
-  const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(null)
+  const [projects,     setProjects]     = useState([])
+  const [taskStats,    setTaskStats]    = useState({})
+  const [loading,      setLoading]      = useState(true)
+  const [modal,        setModal]        = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [successMsg,   setSuccessMsg]   = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -190,6 +284,19 @@ export default function Projects() {
     }
     load()
   }, [isDev, user?.userId])
+
+  const handleDeleteConfirm = async () => {
+    const tareasList  = await tareasApi.getByProyecto(deleteTarget.id)
+    const sprintsList = await sprintsApi.getByProyecto(deleteTarget.id)
+    await Promise.all(tareasList.map(t => tareasApi.delete(t.id)))
+    await Promise.all(sprintsList.map(s => sprintsApi.delete(s.id)))
+    await proyectosApi.delete(deleteTarget.id)
+    setProjects(prev => prev.filter(p => p.id !== deleteTarget.id))
+    const nombre = deleteTarget.nombre
+    setDeleteTarget(null)
+    setSuccessMsg(`El proyecto "${nombre}" fue eliminado correctamente.`)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
 
   const handleSave = (saved) => {
     setProjects(prev =>
@@ -250,7 +357,7 @@ export default function Projects() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {projects.map((project, i) => (
             <div key={project.id} style={{ animation: `fadeIn .25s ease ${i * 0.06}s both` }}>
-              <ProjectCard project={project} taskStats={taskStats[project.id]} onEdit={setModal} canEdit={!isDev} />
+              <ProjectCard project={project} taskStats={taskStats[project.id]} onEdit={setModal} onDelete={setDeleteTarget} canEdit={!isDev} />
             </div>
           ))}
         </div>
@@ -258,6 +365,29 @@ export default function Projects() {
 
       {modal !== null && (
         <ProjectModal project={modal?.id ? modal : null} onClose={() => setModal(null)} onSave={handleSave} />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          project={deleteTarget}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {successMsg && (
+        <div style={{
+          position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          background: '#1B1F3B', color: 'white', borderRadius: 10,
+          padding: '12px 22px', fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,.18)', zIndex: 500,
+          display: 'flex', alignItems: 'center', gap: 10, animation: 'fadeIn .2s ease',
+        }}>
+          <svg width="16" height="16" fill="none" stroke="#7A8C5A" strokeWidth="2.5" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {successMsg}
+        </div>
       )}
     </div>
   )
