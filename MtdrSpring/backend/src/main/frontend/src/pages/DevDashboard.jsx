@@ -14,18 +14,71 @@ const COLUMNS = [
 const STATUSES     = ['Backlog', 'En Progreso', 'Completado', 'Bloqueado']
 const PRIORIDAD_COLOR = { Alta: '#A85550', Media: '#D97706', Baja: '#16A34A' }
 
-function StatusModal({ task, onSave, onClose }) {
-  const [estatus, setEstatus] = useState(task.estatus)
+function HorasModal({ task, onSave, onClose }) {
+  const [horas,   setHoras]   = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      const updated = await tareasApi.update(task.id, { ...task, estatus })
+      const updated = await tareasApi.update(task.id, {
+        ...task,
+        estatus: 'Completado',
+        horasReales: Number(horas) || 0,
+      })
       onSave(updated)
-    } catch {
-      // keep open on error
-    } finally {
+    } catch {} finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 360, boxShadow: 'var(--shadow-lg)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Tarea completada</h3>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
+        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>
+          Horas reales trabajadas
+        </label>
+        <input
+          type="number"
+          min="0.5"
+          step="0.5"
+          value={horas}
+          onChange={e => setHoras(e.target.value)}
+          placeholder="Ej: 4.5"
+          autoFocus
+          style={{ width: '100%', height: 40, padding: '0 12px', border: `1px solid ${horas && Number(horas) > 0 ? 'var(--border)' : horas !== '' ? '#A85550' : 'var(--border)'}`, borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 6 }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'}
+        />
+        {horas !== '' && Number(horas) <= 0 && (
+          <p style={{ fontSize: 11, color: '#A85550', margin: '0 0 16px' }}>Ingresa un número mayor a 0</p>
+        )}
+        {(horas === '' || Number(horas) > 0) && <div style={{ marginBottom: 16 }} />}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" loading={loading} onClick={handleSave} disabled={!horas || Number(horas) <= 0}>Guardar</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuickStatusModal({ task, onComplete, onSave, onClose }) {
+  const [loading, setLoading] = useState(false)
+
+  const handleSelect = async (newEstatus) => {
+    if (newEstatus === task.estatus) { onClose(); return }
+    if (newEstatus === 'Completado') { onClose(); onComplete(task); return }
+    setLoading(true)
+    try {
+      const updated = await tareasApi.update(task.id, { ...task, estatus: newEstatus })
+      onSave(updated)
+    } catch {} finally {
       setLoading(false)
     }
   }
@@ -36,22 +89,21 @@ function StatusModal({ task, onSave, onClose }) {
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 340, boxShadow: 'var(--shadow-lg)' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Actualizar estado</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Cambiar estado</h3>
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
-        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
-          Estado
-        </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
           {STATUSES.map(s => (
             <button
               key={s}
-              onClick={() => setEstatus(s)}
+              disabled={loading}
+              onClick={() => handleSelect(s)}
               style={{
                 padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', textAlign: 'left',
-                border: `2px solid ${estatus === s ? 'var(--accent)' : 'var(--border)'}`,
-                background: estatus === s ? 'var(--accent-light)' : 'white',
-                color: estatus === s ? 'var(--accent)' : 'var(--navy)',
+                border: `2px solid ${s === task.estatus ? 'var(--accent)' : 'var(--border)'}`,
+                background: s === task.estatus ? 'var(--accent-light)' : 'white',
+                color: s === task.estatus ? 'var(--accent)' : 'var(--navy)',
+                opacity: loading ? 0.6 : 1,
                 transition: 'all .15s',
               }}
             >
@@ -59,9 +111,8 @@ function StatusModal({ task, onSave, onClose }) {
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" loading={loading} onClick={handleSave}>Guardar</Button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cerrar</Button>
         </div>
       </div>
     </div>
@@ -76,7 +127,8 @@ export default function DevDashboard() {
   const [loading, setLoading]     = useState(true)
   const [view, setView]           = useState('kanban')
   const [search, setSearch]       = useState('')
-  const [editTask, setEditTask]   = useState(null)
+  const [completingTask, setCompletingTask] = useState(null)
+  const [statusTask, setStatusTask]         = useState(null)
 
   useEffect(() => {
     if (!user?.userId) { setLoading(false); return }
@@ -99,9 +151,14 @@ export default function DevDashboard() {
     setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
 
+  const handleCompleteSave = (saved) => {
+    setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
+    setCompletingTask(null)
+  }
+
   const handleStatusSave = (saved) => {
     setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
-    setEditTask(null)
+    setStatusTask(null)
   }
 
   const filtered   = search ? tasks.filter(t => t.nombre?.toLowerCase().includes(search.toLowerCase())) : tasks
@@ -216,7 +273,7 @@ export default function DevDashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {byStatus(col.key).map((task, i) => (
                       <div key={task.id} style={{ animation: `fadeIn .2s ease ${i * 0.05}s both` }}>
-                        <TaskCard task={task} onUpdate={handleUpdate} />
+                        <TaskCard task={task} onUpdate={handleUpdate} onComplete={setCompletingTask} />
                       </div>
                     ))}
                     {byStatus(col.key).length === 0 && (
@@ -249,9 +306,11 @@ export default function DevDashboard() {
                         {task.prioridad || '—'}
                       </div>
                       <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Button size="sm" variant="ghost" onClick={() => setEditTask(task)}>
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-                        </Button>
+                        {task.estatus !== 'Completado' && (
+                          <Button size="sm" variant="ghost" onClick={() => setStatusTask(task)}>
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
@@ -306,8 +365,11 @@ export default function DevDashboard() {
         </div>
       </div>
 
-      {editTask && (
-        <StatusModal task={editTask} onSave={handleStatusSave} onClose={() => setEditTask(null)} />
+      {completingTask && (
+        <HorasModal task={completingTask} onSave={handleCompleteSave} onClose={() => setCompletingTask(null)} />
+      )}
+      {statusTask && (
+        <QuickStatusModal task={statusTask} onComplete={setCompletingTask} onSave={handleStatusSave} onClose={() => setStatusTask(null)} />
       )}
     </div>
   )

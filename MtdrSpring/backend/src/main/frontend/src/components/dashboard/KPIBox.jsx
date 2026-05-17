@@ -1,7 +1,6 @@
 import Card from '../common/Card'
 
-//KPIBox — single metric display card
-
+//KPIBox — tarjeta para las metricas
 export default function KPIBox({
   title,
   value,
