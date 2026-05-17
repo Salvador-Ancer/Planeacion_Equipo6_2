@@ -11,12 +11,12 @@ const METRIC_COLOR = (actual, meta) => {
 }
 
 export default function Kpis() {
-  const [kpis, setKpis]           = useState([])
+  const [kpis,      setKpis]      = useState([])
   const [proyectos, setProyectos] = useState([])
-  const [sprints, setSprints]     = useState([])
-  const [loading, setLoading]     = useState(true)
+  const [sprints,   setSprints]   = useState([])
+  const [loading,   setLoading]   = useState(true)
   const [filterProyecto, setFilterProyecto] = useState('ALL')
-  const [filterSprint, setFilterSprint]     = useState('ALL')
+  const [filterSprint,   setFilterSprint]   = useState('ALL')
 
   useEffect(() => {
     Promise.all([kpisApi.getAll(), proyectosApi.getAll(), sprintsApi.getAll()])
@@ -24,6 +24,17 @@ export default function Kpis() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Reset sprint filter when project changes
+  const handleProyectoChange = (val) => {
+    setFilterProyecto(val)
+    setFilterSprint('ALL')
+  }
+
+  // Only show sprints belonging to the selected project
+  const sprintsForFilter = filterProyecto === 'ALL'
+    ? []
+    : sprints.filter(s => String(s.proyectoId) === filterProyecto)
 
   const filtered = kpis.filter(k => {
     if (filterProyecto !== 'ALL' && String(k.proyectoId) !== filterProyecto) return false
@@ -39,6 +50,21 @@ export default function Kpis() {
     : 0
   const enObjetivo = filtered.filter(k => k.valorMeta && k.valorActual >= k.valorMeta * 0.9).length
 
+  // Per-project summaries for the ALL view
+  const projectSummaries = proyectos.map(p => {
+    const projectKpis = kpis.filter(k => k.proyectoId === p.id)
+    const avanceKpi   = projectKpis.find(k => k.nombre === 'Avance del Proyecto' && !k.sprintId)
+    const enObj       = projectKpis.filter(k => k.valorMeta && (k.valorActual || 0) >= k.valorMeta * 0.9).length
+    const tasaKpi     = projectKpis.find(k => k.nombre === 'Tasa de Completitud' )
+    return {
+      proyecto:   p,
+      total:      projectKpis.length,
+      enObjetivo: enObj,
+      avance:     avanceKpi?.valorActual ?? null,
+      tasa:       tasaKpi?.valorActual   ?? null,
+    }
+  }).filter(s => s.total > 0)
+
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
 
@@ -53,7 +79,9 @@ export default function Kpis() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
         <Card style={{ padding: '18px 16px' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{filtered.length}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
+            {filterProyecto === 'ALL' ? kpis.length : filtered.length}
+          </div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginTop: 6 }}>Total KPIs</div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Indicadores registrados en el sistema</div>
         </Card>
@@ -71,16 +99,26 @@ export default function Kpis() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={filterProyecto} onChange={e => setFilterProyecto(e.target.value)}
-          style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}>
+        <select
+          value={filterProyecto}
+          onChange={e => handleProyectoChange(e.target.value)}
+          style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}
+        >
           <option value="ALL">Todos los proyectos</option>
           {proyectos.map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
         </select>
-        <select value={filterSprint} onChange={e => setFilterSprint(e.target.value)}
-          style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}>
-          <option value="ALL">Todos los sprints</option>
-          {sprints.map(s => <option key={s.id} value={String(s.id)}>{s.nombre}</option>)}
-        </select>
+
+        {/* Sprint filter — only visible and populated when a project is selected */}
+        {filterProyecto !== 'ALL' && (
+          <select
+            value={filterSprint}
+            onChange={e => setFilterSprint(e.target.value)}
+            style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, cursor: 'pointer', outline: 'none', background: 'white' }}
+          >
+            <option value="ALL">Todos los sprints</option>
+            {sprintsForFilter.map(s => <option key={s.id} value={String(s.id)}>{s.nombre}</option>)}
+          </select>
+        )}
 
         {/* Color legend */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -101,14 +139,92 @@ export default function Kpis() {
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Cargando KPIs…</div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {/* ALL PROJECTS — summary cards per project */}
+      {!loading && filterProyecto === 'ALL' && (
+        projectSummaries.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
+            No hay KPIs registrados
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {projectSummaries.map(({ proyecto, total, enObjetivo: enObj, avance, tasa }, i) => {
+              const avancePct = avance ?? 0
+              const avColor   = avancePct >= 90 ? '#7A8C5A' : avancePct >= 60 ? '#374151' : '#A85550'
+              return (
+                <Card key={proyecto.id} style={{ animation: `fadeIn .25s ease ${i * 0.06}s both` }}>
+                  {/* Project name */}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16 }}>
+                    {proyecto.nombre}
+                  </div>
+
+                  {/* Avance */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Avance del proyecto</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: avancePct > 0 ? avColor : 'var(--muted)' }}>
+                        {avance !== null ? `${avancePct}%` : '—'}
+                      </span>
+                    </div>
+                    <div style={{ height: 7, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', width: `${avancePct}%`,
+                        background: avancePct >= 90 ? '#7A8C5A' : avancePct >= 60 ? '#374151' : '#A85550',
+                        borderRadius: 99, transition: 'width .8s ease',
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Tasa de completitud */}
+                  {tasa !== null && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Tasa de completitud</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: tasa >= 90 ? '#7A8C5A' : tasa >= 60 ? '#374151' : '#A85550' }}>
+                          {tasa}%
+                        </span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${Math.min(100, tasa)}%`,
+                          background: tasa >= 90 ? '#7A8C5A' : tasa >= 60 ? '#374151' : '#A85550',
+                          borderRadius: 99, transition: 'width .8s ease',
+                        }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* KPI counts */}
+                  <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border-light)', paddingTop: 12, marginTop: 4 }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{total}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>KPIs totales</div>
+                    </div>
+                    <div style={{ width: 1, background: 'var(--border-light)' }} />
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#7A8C5A' }}>{enObj}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>En objetivo</div>
+                    </div>
+                    <div style={{ width: 1, background: 'var(--border-light)' }} />
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#A85550' }}>{total - enObj}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>Por mejorar</div>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )
+      )}
+
+      {/* SPECIFIC PROJECT — individual KPI cards */}
+      {!loading && filterProyecto !== 'ALL' && filtered.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-          No hay KPIs disponibles
+          No hay KPIs disponibles para esta selección
         </div>
       )}
 
-      {/* KPI grid */}
-      {!loading && filtered.length > 0 && (
+      {!loading && filterProyecto !== 'ALL' && filtered.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
           {filtered.map((kpi, i) => {
             const { text, bg } = METRIC_COLOR(kpi.valorActual || 0, kpi.valorMeta)
@@ -117,7 +233,6 @@ export default function Kpis() {
               : 0
             return (
               <Card key={kpi.id} style={{ animation: `fadeIn .25s ease ${i * 0.05}s both` }}>
-                {/* Name + description */}
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>
                     {kpi.nombre || `KPI #${kpi.id}`}
@@ -127,7 +242,6 @@ export default function Kpis() {
                   )}
                 </div>
 
-                {/* Value row */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
                   <span style={{ fontSize: 26, fontWeight: 800, color: text, lineHeight: 1 }}>
                     {kpi.valorActual ?? '—'}{kpi.unidad ? ` ${kpi.unidad}` : ''}
@@ -145,7 +259,6 @@ export default function Kpis() {
                   </span>
                 </div>
 
-                {/* Progress bar */}
                 {kpi.valorMeta != null && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ height: 6, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
@@ -157,7 +270,6 @@ export default function Kpis() {
                   </div>
                 )}
 
-                {/* Footer tags */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   {kpi.proyectoId && (
                     <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 20, background: 'var(--border-light)', color: 'var(--muted)' }}>

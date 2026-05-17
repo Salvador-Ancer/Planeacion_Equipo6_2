@@ -1,6 +1,7 @@
 package com.springboot.MyTodoList.controller;
 
 import com.springboot.MyTodoList.model.Tarea;
+import com.springboot.MyTodoList.service.KpiCalculatorService;
 import com.springboot.MyTodoList.service.TareaService;
 import com.springboot.MyTodoList.service.UsuarioService;
 import org.springframework.http.HttpStatus;
@@ -14,12 +15,15 @@ import java.util.Optional;
 @RequestMapping("/tareas")
 public class TareaController {
 
-    private final TareaService tareaService;
-    private final UsuarioService usuarioService;
+    private final TareaService          tareaService;
+    private final UsuarioService        usuarioService;
+    private final KpiCalculatorService  kpiCalculatorService;
 
-    public TareaController(TareaService tareaService, UsuarioService usuarioService) {
-        this.tareaService = tareaService;
-        this.usuarioService = usuarioService;
+    public TareaController(TareaService tareaService, UsuarioService usuarioService,
+                           KpiCalculatorService kpiCalculatorService) {
+        this.tareaService         = tareaService;
+        this.usuarioService       = usuarioService;
+        this.kpiCalculatorService = kpiCalculatorService;
     }
 
     // GET /tareas
@@ -98,7 +102,10 @@ public class TareaController {
         if (tarea.getAsignadoA() != null && usuarioService.obtenerPorId(tarea.getAsignadoA()).isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(tareaService.guardar(tarea));
+        Tarea saved = tareaService.guardar(tarea);
+        if (saved.getSprintId()   != null) kpiCalculatorService.recalcularPorSprint(saved.getSprintId(), saved.getProyectoId());
+        if (saved.getProyectoId() != null) kpiCalculatorService.recalcularPorProyecto(saved.getProyectoId());
+        return ResponseEntity.ok(saved);
     }
 
     // DELETE /tareas/{id}
