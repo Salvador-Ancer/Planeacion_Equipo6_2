@@ -68,7 +68,7 @@ export default function Login() {
       background: '#F7F5F4',
       fontFamily: 'DM Sans, sans-serif',
     }}>
-      {/* Left panel — branding */}
+      {/* Left panel  */}
       <div style={{
         width: '42%',
         background: 'linear-gradient(175deg, #7A1F13 0%, #C74634 55%, #A83828 100%)',
@@ -92,7 +92,7 @@ export default function Login() {
         <div />
       </div>
 
-      {/* Right panel — form */}
+      {/* Right panel  */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -105,7 +105,7 @@ export default function Login() {
           animation: 'fadeIn .4s ease',
         }}>
           <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B1F3B', marginBottom: 6 }}>
-            test ci/cd
+            Maria Cavada
           </h2>
           <br />
 

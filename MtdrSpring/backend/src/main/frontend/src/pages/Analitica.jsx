@@ -3,10 +3,10 @@ import Card from '../components/common/Card'
 import { tareasApi, sprintsApi, proyectosApi, usuariosApi } from '../services/api'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line,
+  PieChart, Pie, Cell,
 } from 'recharts'
 
-// Oracle palette — up to 8 developers
+//colores
 const DEV_COLORS = [
   '#C74634', '#374151', '#7A8C5A', '#A85550',
   '#64748B', '#9E3527', '#4B5563', '#5A6E3E',
@@ -44,14 +44,16 @@ export default function Analitica() {
   const [proyectos,      setProyectos]      = useState([])
   const [usuarios,       setUsuarios]       = useState([])
   const [loading,        setLoading]        = useState(true)
+  const [refreshKey,     setRefreshKey]     = useState(0)
   const [filterProyecto, setFilterProyecto] = useState('ALL')
 
   useEffect(() => {
+    setLoading(true)
     Promise.all([tareasApi.getAll(), sprintsApi.getAll(), proyectosApi.getAll(), usuariosApi.getAll()])
       .then(([t, s, p, u]) => { setTareas(t); setSprints(s); setProyectos(p); setUsuarios(u) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
 
   const allDevs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner'].includes(u.rol))
   const getName = (u) => (u.fullName || u.email || `Dev ${u.id}`).split(' ')[0]
@@ -65,22 +67,22 @@ export default function Analitica() {
     ? (tareas.reduce((s, t) => s + (t.horasReales || 0), 0) / total).toFixed(1)
     : 0
 
-  // ── Scoped data for charts 1 & 2 ────────────────────────────────────────────
-  const sprintsScope = filterProyecto === 'ALL'
+  // graficas 1 y 2
+  const sprintsScope = (filterProyecto === 'ALL'
     ? sprints
     : sprints.filter(s => String(s.proyectoId) === filterProyecto)
+  ).slice().sort((a, b) => new Date(a.fechaInicio || 0) - new Date(b.fechaInicio || 0))
 
   const tareasScope = filterProyecto === 'ALL'
     ? tareas
     : tareas.filter(t => String(t.proyectoId) === filterProyecto)
 
-  // Only devs with at least one task in the scoped sprints
-  const sprintIds = new Set(sprintsScope.map(s => s.id))
+  // solo usuarios con al menos una tarea en el scope actual
   const devsScope = allDevs.filter(dev =>
-    tareasScope.some(t => sprintIds.has(t.sprintId) && Number(t.asignadoA) === Number(dev.id))
+    tareasScope.some(t => Number(t.asignadoA) === Number(dev.id))
   ).slice(0, 8)
 
-  // Tareas completadas por usuario/sprint
+  //tareas completadas por usuario/sprint
   const tareasCompletadasData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
@@ -93,7 +95,7 @@ export default function Analitica() {
     return row
   }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  // Story Points completados por developer/sprint
+  // story points completados por developer/sprint
   const spData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
@@ -106,7 +108,7 @@ export default function Analitica() {
     return row
   }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  // Estado de tareas (pie — filtrado)
+  //grafica de pie - estado de tareas 
   const statusPie = [
     { name: 'Completado',  value: tareasScope.filter(t => t.estatus === 'Completado').length,  color: '#7A8C5A' },
     { name: 'En Progreso', value: tareasScope.filter(t => t.estatus === 'En Progreso').length, color: '#374151' },
@@ -114,16 +116,19 @@ export default function Analitica() {
     { name: 'Bloqueado',   value: tareasScope.filter(t => t.estatus === 'Bloqueado').length,   color: '#A85550' },
   ].filter(d => d.value > 0)
 
-  // Story points completados por sprint (line — filtrado)
-  const velocityData = sprintsScope.map(sprint => ({
-    sprint: sprint.nombre,
-    'Story Points': tareasScope
-      .filter(t => t.sprintId === sprint.id && t.estatus === 'Completado')
-      .reduce((s, t) => s + (t.storyPoints || 0), 0),
-    'Tareas': tareasScope.filter(t => t.sprintId === sprint.id && t.estatus === 'Completado').length,
-  })).filter(d => d['Story Points'] > 0 || d['Tareas'] > 0)
+  // horas reales por usuario — respeta el filtro de proyecto
+  const devsAllKeys = devsScope.map(getName)
+  const horasXSprintData = sprintsScope.map(sprint => {
+    const row = { sprint: sprint.nombre }
+    devsScope.forEach(dev => {
+      row[getName(dev)] = tareasScope
+        .filter(t => t.sprintId === sprint.id && Number(t.asignadoA) === Number(dev.id))
+        .reduce((s, t) => s + (t.horasReales || 0), 0)
+    })
+    return row
+  })
 
-  // Avance por proyecto (barras horizontales — filtrado)
+  //grafica - avance por proyecto
   const proyectosScope = filterProyecto === 'ALL'
     ? proyectos
     : proyectos.filter(p => String(p.id) === filterProyecto)
@@ -144,13 +149,33 @@ export default function Analitica() {
 
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
-
-      {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0 }}>Analítica</h1>
-        <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>
-          Análisis comparativo del equipo por sprint — productividad, horas y avance de proyectos.
-        </p>
+      {/* header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0 }}>Analítica</h1>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>
+            Análisis comparativo del equipo por sprint — productividad, horas y avance de proyectos.
+          </p>
+        </div>
+        <button
+          onClick={() => setRefreshKey(k => k + 1)}
+          disabled={loading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+            border: '1px solid var(--border)', background: 'white', color: 'var(--navy)',
+            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+            transition: 'all .15s',
+          }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'var(--bg)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'white' }}
+        >
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M1 4v6h6M23 20v-6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {loading ? 'Cargando…' : 'Actualizar datos'}
+        </button>
       </div>
 
       {/* KPI cards */}
@@ -176,7 +201,7 @@ export default function Analitica() {
       {!loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* Filtro de proyecto para las dos primeras gráficas */}
+          {/* filtro de proyecto para las dos primeras graficas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               Proyecto
@@ -249,29 +274,30 @@ export default function Analitica() {
           {/* segunda columna */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-            {/* Velocidad del equipo - linea */}
+            {/* Horas reales por usuario/sprint - todos los sprints */}
             <SECTION
-              title="Velocidad del equipo por sprint"
-              subtitle="Story points y tareas completadas por sprint — muestra si el equipo acelera o desacelera."
+              title="Horas reales por desarrollador / sprint"
+              subtitle="Total de horas reales registradas por cada desarrollador en todos los sprints."
             >
-              {velocityData.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '30px 0' }}>Sin datos de velocidad</div>
+              {horasXSprintData.every(row => devsScope.every(d => !row[getName(d)])) ? (
+                <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '30px 0' }}>Sin horas registradas</div>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={velocityData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                  <BarChart data={horasXSprintData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
                     <XAxis dataKey="sprint" tick={{ fontSize: 11, fill: '#6B7280' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<CustomTooltip unit=" h" />} />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                    <Line type="monotone" dataKey="Story Points" stroke="#C74634" strokeWidth={2.5} dot={{ r: 4, fill: '#C74634' }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="Tareas" stroke="#374151" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 4, fill: '#374151' }} />
-                  </LineChart>
+                    {devsAllKeys.map((name, i) => (
+                      <Bar key={name} dataKey={name} fill={DEV_COLORS[i % DEV_COLORS.length]} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                    ))}
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </SECTION>
 
-            {/* Distribución de estados - pie */}
+            {/* distribución de estados - pie */}
             <SECTION
               title="Distribución de tareas por estado"
               subtitle="Proporción actual de tareas en cada etapa del flujo de trabajo."
@@ -308,7 +334,7 @@ export default function Analitica() {
             </SECTION>
           </div>
 
-          {/* Avance por proyecto - barras apiladas */}
+          {/* avance por proyecto - barras horizontales */}
           {proyectoData.length > 0 && (
             <SECTION
               title="Avance por proyecto"

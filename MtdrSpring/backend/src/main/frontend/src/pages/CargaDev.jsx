@@ -119,7 +119,7 @@ export default function CargaDev() {
                 borderRadius: 'var(--radius)', padding: '18px 20px',
                 borderTop: `3px solid ${color}`,
               }}>
-                {/* Avatar + name */}
+                {/* Avatar + nombre */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: '50%', flexShrink: 0,

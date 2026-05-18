@@ -21,7 +21,7 @@ function datesOverlap(s, fechaInicio, fechaFin) {
   return s.fechaInicio.slice(0, 10) < fechaFin && s.fechaFin.slice(0, 10) > fechaInicio
 }
 
-// ── Sprint Modal ─────────────────────────────────────────────────────────────
+//sprint modal
 function SprintModal({ sprint, proyectos, allSprints, projectLocked, onSave, onClose }) {
   const isEdit = !!sprint?.id
   const [form, setForm] = useState(
@@ -46,7 +46,7 @@ function SprintModal({ sprint, proyectos, allSprints, projectLocked, onSave, onC
 
   const selectedProject = proyectos.find(p => String(p.id) === String(form.proyectoId))
 
-  // Validate on the fly
+  //validación
   const projectWarning = selectedProject && CLOSED_STATUSES.includes(selectedProject.estatus)
     ? `El proyecto "${selectedProject.nombre}" está ${selectedProject.estatus.toLowerCase()} — no se pueden agregar sprints.`
     : null
@@ -213,7 +213,7 @@ function SprintModal({ sprint, proyectos, allSprints, projectLocked, onSave, onC
   )
 }
 
-// ── Project Accordion Row ────────────────────────────────────────────────────
+// proyectos
 function ProjectAccordion({ project, sprints, tareas, onEdit, onDelete, onNewSprint }) {
   const [open, setOpen] = useState(sprints.some(s => s.estatus === 'Activo'))
 
@@ -375,13 +375,13 @@ function ProjectAccordion({ project, sprints, tareas, onEdit, onDelete, onNewSpr
   )
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+// pag principal
 export default function Sprints() {
   const [sprints,   setSprints]   = useState([])
   const [proyectos, setProyectos] = useState([])
   const [tareas,    setTareas]    = useState([])
   const [loading,   setLoading]   = useState(true)
-  const [modal,     setModal]     = useState(null)   // null | { sprint?, preselectedProject? }
+  const [modal,     setModal]     = useState(null)
   const [delTarget, setDelTarget] = useState(null)
 
   const load = () => {
@@ -407,12 +407,12 @@ export default function Sprints() {
     } catch (e) { console.error(e) }
   }
 
-  // Summary counts
+  //resumen
   const totalActivos   = sprints.filter(s => s.estatus === 'Activo').length
   const totalPendiente = sprints.filter(s => s.estatus === 'Pendiente').length
   const totalCerrados  = sprints.filter(s => s.estatus === 'Cerrado').length
 
-  // When opening modal from "+ Sprint" button on project header, preselect project
+  // Al abrir el modal desde el botón "+ Sprint" en el encabezado del proyecto, preseleccionar el proyecto
   const openNewSprint = (project) => {
     setModal({ sprint: project ? { proyectoId: project.id } : null, preselected: !!project })
   }

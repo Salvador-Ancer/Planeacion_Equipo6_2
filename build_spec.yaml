@@ -18,14 +18,49 @@ steps:
 
   - type: Command
     name: "Docker Login"
-    command:  cd MtdrSpring;
-              oci os object get --bucket-name reacttodo-ukcyd --name deployment_config.tgz --file deployment_config.tgz;
-              tar -xzvf deployment_config.tgz;
-              source env.sh;
-              cat at.cfg | docker login -u "axe5wdod0see/a00840038@tec.mx" --password-stdin mx-queretaro-1.ocir.io
+    command: cd MtdrSpring;
+             oci os object get --bucket-name reacttodo-ukcyd --name deployment_config.tgz --file deployment_config.tgz;
+             tar -xzvf deployment_config.tgz;
+             source env.sh;
+             cat at.cfg | docker login -u "axe5wdod0see/a00840038@tec.mx" --password-stdin mx-queretaro-1.ocir.io
+
+  - type: Command
+    name: "Maven Build"
+    command: cd MtdrSpring/backend;
+             export JAVA_HOME=/usr/lib/jvm/java-17-openjdk;
+             export PATH=$JAVA_HOME/bin:$PATH;
+             java -version;
+             ./mvnw package -DskipTests
 
   - type: Command
     name: "Build"
-    command:  cd MtdrSpring;
-              source env.sh;
-              (cd backend;source build.sh)
+    command: export PATH=/usr/lib/jvm/java-17-openjdk/bin:$PATH;
+             cd MtdrSpring;
+             source env.sh;
+             (cd backend; source build.sh)
+
+  - type: Command
+    name: "Install K8s"
+    command: mkdir -p $HOME/.kube;
+             cd $HOME;
+             mkdir -p k8s;
+             cd k8s;
+             wget https://dl.k8s.io/v1.31.2/bin/linux/amd64/kubectl;
+             chmod +x kubectl;
+             export PATH=$PATH:$HOME/k8s;
+             kubectl version --client;
+             cd $HOME/.kube;
+             oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.mx-queretaro-1.aaaaaaaaeeklnmbx6fajnmf645x2w5eyjsenc5qzocfj4ovxycy6mwf7apkq --file $HOME/.kube/config --region mx-queretaro-1 --token-version 2.0.0 --kube-endpoint PUBLIC_ENDPOINT;
+             export KUBECONFIG=$HOME/.kube/config;
+
+#  - type: Command
+#    name: "Undeploy"
+#    ignoreFailure: True
+#    command: export PATH=$PATH:$HOME/k8s;
+#             export KUBECONFIG=$HOME/.kube/config;
+#             cd MtdrSpring;
+#             source env.sh;
+#             cd backend;
+#             kubectl config view;
+#             source undeploy.sh;
+             
