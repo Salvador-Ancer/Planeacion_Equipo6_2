@@ -53,13 +53,14 @@ steps:
              oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.mx-queretaro-1.aaaaaaaaeeklnmbx6fajnmf645x2w5eyjsenc5qzocfj4ovxycy6mwf7apkq --file $HOME/.kube/config --region mx-queretaro-1 --token-version 2.0.0 --kube-endpoint PUBLIC_ENDPOINT;
              export KUBECONFIG=$HOME/.kube/config;
 
-  - type: Command
-    name: "Undeploy"
-    ignoreFailure: True
-    command: export PATH=$PATH:$HOME/k8s;
-             export KUBECONFIG=$HOME/.kube/config;
-             cd MtdrSpring;
-             source env.sh;
-             cd backend;
-             kubectl config view;
-             source undeploy.sh;
+#  - type: Command
+#    name: "Undeploy"
+#    ignoreFailure: True
+#    command: export PATH=$PATH:$HOME/k8s;
+#             export KUBECONFIG=$HOME/.kube/config;
+#             cd MtdrSpring;
+#             source env.sh;
+#             cd backend;
+#             kubectl config view;
+#             source undeploy.sh;
+             
