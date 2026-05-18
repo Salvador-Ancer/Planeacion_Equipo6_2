@@ -1,4 +1,4 @@
 echo delete frontend deployment and service...
-kubectl -n default delete deployment todolistapp-springboot-deployment-c55f89769-6zs6b --ignore-not-found
-kubectl -n default delete deployment todolistapp-springboot-deployment-c55f89769-jnm9d --ignore-not-found
-kubectl -n default delete service todolistapp-springboot-service --ignore-not-found
+             kubectl delete deployment todolistapp-springboot-deployment -n default --ignore-not-found;
+             kubectl delete service todolistapp-springboot-service -n default --ignore-not-found;
+             kubectl delete service todolistapp-backend-router -n default --ignore-not-found;
