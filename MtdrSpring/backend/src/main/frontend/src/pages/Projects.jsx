@@ -4,7 +4,7 @@ import Button from '../components/common/Button'
 import { proyectosApi, tareasApi, sprintsApi } from '../services/api'
 import { useAuth } from '../App'
 
-// estatus values from DB: 'Planeado' | 'En Progreso' | 'Completado' | 'Cancelado'
+// estatus db
 const STATUS_CONFIG = {
   'Planeado':    { label: 'Planeado',    color: '#374151', bg: '#F1F5F9' },
   'En Progreso': { label: 'En progreso', color: '#A85550', bg: '#F5ECEB' },
@@ -255,7 +255,7 @@ export default function Projects() {
           isDev && user?.userId ? tareasApi.getByAsignado(user.userId) : Promise.resolve([]),
         ])
 
-        // Developers only see projects where they have tasks
+        // los desarrolladores solo ven proyectos si tienen tareas 
         const myProjectIds = isDev
           ? new Set((myTasks || []).map(t => t.proyectoId).filter(Boolean))
           : null

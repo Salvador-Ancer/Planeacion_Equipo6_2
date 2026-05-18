@@ -5,7 +5,7 @@ import Button from '../components/common/Button'
 import Card from '../components/common/Card'
 import { tareasApi } from '../services/api'
 
-// DB values: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
+// valores db
 const COLUMNS = [
   { key: 'Backlog',     label: 'Backlog',      color: 'var(--muted)',       dot: '#94A3B8' },
   { key: 'En Progreso', label: 'En progreso',  color: 'var(--accent)',      dot: 'var(--accent)' },

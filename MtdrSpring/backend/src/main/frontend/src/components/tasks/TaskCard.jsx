@@ -25,12 +25,14 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit, onComplete 
 
   const closeMenu = () => setMenuPos(null)
 
+  // cierra cuando otra card abre su menu
   useEffect(() => {
     const handler = (e) => { if (e.detail !== task.id) closeMenu() }
     window.addEventListener(MENU_EVENT, handler)
     return () => window.removeEventListener(MENU_EVENT, handler)
   }, [task.id])
 
+  // cerrar con click externo
   useEffect(() => {
     if (!menuPos) return
     const handler = (e) => {

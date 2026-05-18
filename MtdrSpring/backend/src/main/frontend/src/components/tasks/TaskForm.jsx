@@ -73,25 +73,25 @@ function StepBar({ step, isEdit }) {
 export default function TaskForm({ task, onSuccess, onCancel }) {
   const isEdit = !!task?.id
 
-  // Step state (only for new tasks)
+  //nuevas tareas
   const [step, setStep] = useState(1)
 
-  // Step 1 — project
+  //paso 1: seleccionar proyecto
   const [proyectos,      setProyectos]      = useState([])
   const [selectedProyecto, setSelectedProyecto] = useState(task?.proyectoId ? String(task.proyectoId) : '')
 
-  // Step 2 — sprint
+  //paso 2: seleccionar sprint
   const [sprints,        setSprints]        = useState([])
   const [selectedSprint, setSelectedSprint] = useState(task?.sprintId ? String(task.sprintId) : '')
   const [loadingSprints, setLoadingSprints] = useState(false)
 
-  // Step 3 — task fields
+  //paso 3: llenar la tarea
   const [form, setForm]     = useState({ ...INITIAL_TASK, ...(task || {}) })
   const [developers, setDevelopers] = useState([])
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
 
-  // Load projects and developers on mount
+  //cargar proyectos y desarrilladores
   useEffect(() => {
     proyectosApi.getAll().then(p => setProyectos(Array.isArray(p) ? p : [])).catch(() => setProyectos([]))
     usuariosApi.getAll()
@@ -99,7 +99,7 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
       .catch(() => setDevelopers([]))
   }, [])
 
-  // Load sprints when project is selected
+  //cargar sprint cuando el projecto es seleccionado
   useEffect(() => {
     if (!selectedProyecto) { setSprints([]); return }
     setLoadingSprints(true)
@@ -111,7 +111,7 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
-  // Step navigation
+  //navegación
   const goStep2 = () => {
     if (!selectedProyecto) { setError('Selecciona un proyecto'); return }
     setError('')
@@ -151,7 +151,7 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
   const proyectoNombre = proyectos.find(p => String(p.id) === selectedProyecto)?.nombre || ''
   const sprintNombre   = sprints.find(s => String(s.id) === selectedSprint)?.nombre || ''
 
-  // ── EDIT MODE: skip wizard, show full form ──────────────────────────────────
+  //editar tarea icon
   if (isEdit) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -216,12 +216,12 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
     )
   }
 
-  // ── NEW TASK WIZARD ─────────────────────────────────────────────────────────
+  // nueva tarea
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <StepBar step={step} isEdit={false} />
 
-      {/* STEP 1: Select Project */}
+      {/* paso 1: seleccionar proyecto */}
       {step === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
@@ -251,7 +251,7 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
         </div>
       )}
 
-      {/* STEP 2: Select Sprint */}
+      {/* paso 2: seleccionar sprint */}
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg)', fontSize: 12.5, color: 'var(--muted)' }}>
@@ -296,10 +296,10 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
         </div>
       )}
 
-      {/* STEP 3: Task details */}
+      {/* paso 3: detalles de la tarea */}
       {step === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Context bar */}
+          {/* descripción */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--navy)' }}>
               {proyectoNombre}
