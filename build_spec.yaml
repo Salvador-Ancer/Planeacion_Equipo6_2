@@ -119,14 +119,17 @@ steps:
   - type: Command
     name: "Install Apache JMeter 5.6.3"
     command: |
+      export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+      export PATH=$JAVA_HOME/bin:$PATH
       cd $HOME
       wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
       tar -xzf apache-jmeter-5.6.3.tgz
       export JMETER_HOME=$HOME/apache-jmeter-5.6.3
       export PATH=$JMETER_HOME/bin:$PATH
-      jmeter --version
+      JAVA_HOME=$JAVA_HOME jmeter --version
+      echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk" >> $HOME/jmeter_env.sh
       echo "export JMETER_HOME=$HOME/apache-jmeter-5.6.3" >> $HOME/jmeter_env.sh
-      echo 'export PATH=$JMETER_HOME/bin:$PATH' >> $HOME/jmeter_env.sh
+      echo 'export PATH=$JAVA_HOME/bin:$JMETER_HOME/bin:$PATH' >> $HOME/jmeter_env.sh
 
   - type: Command
     name: "Seed Test Users"
@@ -150,7 +153,7 @@ steps:
     command: |
       source $HOME/jmeter_env.sh
       mkdir -p $HOME/jmeter-results/baseline $HOME/jmeter-results/html/baseline
-      cd /workspace/tests/jmeter
+      cd tests/jmeter
       jmeter -n \
         -t load_test.jmx \
         -l $HOME/jmeter-results/baseline/results.jtl \
@@ -167,7 +170,7 @@ steps:
     command: |
       source $HOME/jmeter_env.sh
       mkdir -p $HOME/jmeter-results/normal $HOME/jmeter-results/html/normal
-      cd /workspace/tests/jmeter
+      cd tests/jmeter
       jmeter -n \
         -t load_test.jmx \
         -l $HOME/jmeter-results/normal/results.jtl \
@@ -184,7 +187,7 @@ steps:
     command: |
       source $HOME/jmeter_env.sh
       mkdir -p $HOME/jmeter-results/peak $HOME/jmeter-results/html/peak
-      cd /workspace/tests/jmeter
+      cd tests/jmeter
       jmeter -n \
         -t load_test.jmx \
         -l $HOME/jmeter-results/peak/results.jtl \
@@ -202,7 +205,7 @@ steps:
     command: |
       source $HOME/jmeter_env.sh
       mkdir -p $HOME/jmeter-results/stress $HOME/jmeter-results/html/stress
-      cd /workspace/tests/jmeter
+      cd tests/jmeter
       jmeter -n \
         -t load_test.jmx \
         -l $HOME/jmeter-results/stress/results.jtl \
