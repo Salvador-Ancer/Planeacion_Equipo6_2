@@ -1,6 +1,6 @@
 version: 0.1
 component: build
-timeoutInSeconds: 600
+timeoutInSeconds: 1800
 shell: bash
 
 env:
@@ -63,3 +63,196 @@ steps:
              cd MtdrSpring;
              source env.sh;
              (cd backend; source build.sh)
+
+  - type: Command
+    name: "Deploy to OKE"
+    command: |
+      export PATH=$PATH:$HOME/k8s
+      export KUBECONFIG=$HOME/.kube/config
+      cd MtdrSpring
+      source env.sh
+      cd backend
+      source deploy.sh
+      echo "Waiting for rollout to complete..."
+      kubectl rollout status deployment/todolistapp-springboot-deployment -n mtdrworkshop --timeout=300s
+
+  - type: Command
+    name: "Get LoadBalancer External IP"
+    command: |
+      export PATH=$PATH:$HOME/k8s
+      export KUBECONFIG=$HOME/.kube/config
+      echo "Waiting for LoadBalancer IP..."
+      for i in $(seq 1 30); do
+        LB_IP=$(kubectl get svc todolistapp-springboot-service -n mtdrworkshop -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+        if [ -n "$LB_IP" ]; then
+          echo "LoadBalancer IP: $LB_IP"
+          echo "export LB_IP=$LB_IP" > $HOME/jmeter_env.sh
+          break
+        fi
+        echo "Attempt $i/30 - not yet assigned, waiting 10s..."
+        sleep 10
+      done
+      if [ -z "$LB_IP" ]; then
+        echo "ERROR: LoadBalancer IP not assigned after 300s"
+        exit 1
+      fi
+
+  - type: Command
+    name: "Verify App Health"
+    command: |
+      source $HOME/jmeter_env.sh
+      echo "Verifying app health at http://$LB_IP/proyectos ..."
+      for i in $(seq 1 12); do
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://$LB_IP/proyectos || echo "000")
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "App is healthy (HTTP $HTTP_CODE)"
+          break
+        fi
+        echo "Attempt $i/12 - HTTP $HTTP_CODE, waiting 15s..."
+        sleep 15
+      done
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "ERROR: App did not respond HTTP 200 after 180s"
+        exit 1
+      fi
+
+  - type: Command
+    name: "Install Apache JMeter 5.6.3"
+    command: |
+      cd $HOME
+      wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+      tar -xzf apache-jmeter-5.6.3.tgz
+      export JMETER_HOME=$HOME/apache-jmeter-5.6.3
+      export PATH=$JMETER_HOME/bin:$PATH
+      jmeter --version
+      echo "export JMETER_HOME=$HOME/apache-jmeter-5.6.3" >> $HOME/jmeter_env.sh
+      echo 'export PATH=$JMETER_HOME/bin:$PATH' >> $HOME/jmeter_env.sh
+
+  - type: Command
+    name: "Seed Test Users"
+    command: |
+      source $HOME/jmeter_env.sh
+      echo "Registering JMeter test users via /auth/register ..."
+      for USER in admin dev1 dev2 dev3 dev4 dev5 qa; do
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://$LB_IP/auth/register \
+          -H "Content-Type: application/json" \
+          -d "{\"email\":\"$USER@test.com\",\"password\":\"Test1234!\",\"fullName\":\"$USER\",\"rol\":\"Developer\"}")
+        echo "Register $USER@test.com: HTTP $HTTP_CODE"
+      done
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://$LB_IP/auth/register \
+        -H "Content-Type: application/json" \
+        -d '{"email":"pm@test.com","password":"Test1234!","fullName":"PM","rol":"Manager"}')
+      echo "Register pm@test.com: HTTP $HTTP_CODE"
+      echo "Test user seeding complete"
+
+  - type: Command
+    name: "Run JMeter - Baseline (10 users)"
+    command: |
+      source $HOME/jmeter_env.sh
+      mkdir -p $HOME/jmeter-results/baseline $HOME/jmeter-results/html/baseline
+      cd /workspace/tests/jmeter
+      jmeter -n \
+        -t load_test.jmx \
+        -l $HOME/jmeter-results/baseline/results.jtl \
+        -e -o $HOME/jmeter-results/html/baseline \
+        -Jhost=$LB_IP -Jport=80 \
+        -Jthreads=10 -Jrampup=30 -Jduration=180 \
+        -Jthinktime=1000 \
+        -Jemail=dev1@test.com -Jpassword=Test1234! \
+        2>&1 | tee $HOME/jmeter-results/baseline/jmeter.log
+      echo "Baseline run complete"
+
+  - type: Command
+    name: "Run JMeter - Normal Load (25 users)"
+    command: |
+      source $HOME/jmeter_env.sh
+      mkdir -p $HOME/jmeter-results/normal $HOME/jmeter-results/html/normal
+      cd /workspace/tests/jmeter
+      jmeter -n \
+        -t load_test.jmx \
+        -l $HOME/jmeter-results/normal/results.jtl \
+        -e -o $HOME/jmeter-results/html/normal \
+        -Jhost=$LB_IP -Jport=80 \
+        -Jthreads=25 -Jrampup=60 -Jduration=300 \
+        -Jthinktime=1000 \
+        -Jemail=dev2@test.com -Jpassword=Test1234! \
+        2>&1 | tee $HOME/jmeter-results/normal/jmeter.log
+      echo "Normal load run complete"
+
+  - type: Command
+    name: "Run JMeter - Peak Load (50 users)"
+    command: |
+      source $HOME/jmeter_env.sh
+      mkdir -p $HOME/jmeter-results/peak $HOME/jmeter-results/html/peak
+      cd /workspace/tests/jmeter
+      jmeter -n \
+        -t load_test.jmx \
+        -l $HOME/jmeter-results/peak/results.jtl \
+        -e -o $HOME/jmeter-results/html/peak \
+        -Jhost=$LB_IP -Jport=80 \
+        -Jthreads=50 -Jrampup=90 -Jduration=300 \
+        -Jthinktime=1000 \
+        -Jemail=dev3@test.com -Jpassword=Test1234! \
+        2>&1 | tee $HOME/jmeter-results/peak/jmeter.log
+      echo "Peak load run complete"
+
+  - type: Command
+    name: "Run JMeter - Stress Test (100 users)"
+    ignoreFailure: True
+    command: |
+      source $HOME/jmeter_env.sh
+      mkdir -p $HOME/jmeter-results/stress $HOME/jmeter-results/html/stress
+      cd /workspace/tests/jmeter
+      jmeter -n \
+        -t load_test.jmx \
+        -l $HOME/jmeter-results/stress/results.jtl \
+        -e -o $HOME/jmeter-results/html/stress \
+        -Jhost=$LB_IP -Jport=80 \
+        -Jthreads=100 -Jrampup=120 -Jduration=180 \
+        -Jthinktime=500 \
+        -Jemail=dev4@test.com -Jpassword=Test1234! \
+        2>&1 | tee $HOME/jmeter-results/stress/jmeter.log
+      echo "Stress test complete"
+
+  - type: Command
+    name: "Validate Acceptance Criteria (Peak)"
+    command: |
+      source $HOME/jmeter_env.sh
+      RESULTS=$HOME/jmeter-results/peak/results.jtl
+      if [ ! -f "$RESULTS" ]; then
+        echo "ERROR: Peak results not found"
+        exit 1
+      fi
+      TOTAL=$(tail -n +2 $RESULTS | wc -l)
+      ERRORS=$(tail -n +2 $RESULTS | awk -F',' '$8=="false"' | wc -l)
+      ERROR_RATE=$(echo "scale=2; $ERRORS * 100 / $TOTAL" | bc)
+      echo "Total samples: $TOTAL | Errors: $ERRORS | Error rate: $ERROR_RATE%"
+      if (( $(echo "$ERROR_RATE > 5" | bc -l) )); then
+        echo "FAIL: Error rate $ERROR_RATE% supera umbral 5%"
+        exit 1
+      fi
+      echo "PASS: Error rate $ERROR_RATE% dentro del umbral 5%"
+
+  - type: Command
+    name: "Package JMeter Results"
+    command: |
+      cd $HOME
+      tar -czf jmeter-reports.tar.gz jmeter-results/
+      echo "Reportes empaquetados en: $HOME/jmeter-reports.tar.gz"
+
+outputArtifacts:
+  - name: jmeter-baseline-report
+    type: BINARY
+    location: $HOME/jmeter-results/html/baseline/index.html
+  - name: jmeter-normal-report
+    type: BINARY
+    location: $HOME/jmeter-results/html/normal/index.html
+  - name: jmeter-peak-report
+    type: BINARY
+    location: $HOME/jmeter-results/html/peak/index.html
+  - name: jmeter-stress-report
+    type: BINARY
+    location: $HOME/jmeter-results/html/stress/index.html
+  - name: jmeter-all-reports
+    type: BINARY
+    location: $HOME/jmeter-reports.tar.gz
