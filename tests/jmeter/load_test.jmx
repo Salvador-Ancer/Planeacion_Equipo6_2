@@ -140,13 +140,13 @@ Run (non-GUI):
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <!-- Extract userId from login JSON response (built-in JSONPostProcessor) -->
           <JSONPostProcessor guiclass="JSONExtractorGui" testclass="JSONPostProcessor" testname="Extract userId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">read_userId</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">$.userId</stringProp>
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Login 200" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
@@ -156,9 +156,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Login &lt; 2000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">2000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <!-- 02: GET /tareas -->
@@ -178,6 +180,7 @@ Run (non-GUI):
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert 200" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
@@ -186,9 +189,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 3000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">3000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -215,9 +220,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 3000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">3000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -244,9 +251,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 2000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">2000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -273,9 +282,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 2000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">2000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -302,9 +313,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 2000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">2000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -331,9 +344,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 3000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">3000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -360,9 +375,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 2000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">2000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -414,6 +431,7 @@ Run (non-GUI):
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Login 200" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
@@ -422,6 +440,7 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
         </hashTree>
 
         <!-- W02: GET /tareas (extract sprintId and proyectoId for POST payload) -->
@@ -441,12 +460,14 @@ Run (non-GUI):
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
           <JSONPostProcessor guiclass="JSONExtractorGui" testclass="JSONPostProcessor" testname="Extract proyectoId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">write_proyectoId</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">$[0].proyectoId</stringProp>
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -478,6 +499,7 @@ Run (non-GUI):
             <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
+          <hashTree/>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert 201" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49587">201</stringProp>
@@ -486,9 +508,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 5000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">5000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
@@ -522,9 +546,11 @@ Run (non-GUI):
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
+          <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Response &lt; 5000ms" enabled="true">
             <stringProp name="DurationAssertion.duration">5000</stringProp>
           </DurationAssertion>
+          <hashTree/>
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
