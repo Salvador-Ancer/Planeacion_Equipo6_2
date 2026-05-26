@@ -114,9 +114,9 @@ Run (non-GUI):
           <intProp name="LoopController.loops">-1</intProp>
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">${__P(read_threads,8)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${RAMP_UP}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampup,30)}</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">${DURATION}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,180)}</stringProp>
         <stringProp name="ThreadGroup.delay">0</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
@@ -197,7 +197,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -228,7 +228,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -259,7 +259,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -290,7 +290,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -321,7 +321,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -352,7 +352,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -383,7 +383,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -399,9 +399,9 @@ Run (non-GUI):
           <intProp name="LoopController.loops">-1</intProp>
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">${__P(write_threads,2)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${RAMP_UP}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampup,30)}</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">${DURATION}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,180)}</stringProp>
         <stringProp name="ThreadGroup.delay">0</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
@@ -471,7 +471,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -516,7 +516,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
@@ -554,7 +554,7 @@ Run (non-GUI):
         </hashTree>
 
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">${THINK_TIME}</stringProp>
+          <stringProp name="ConstantTimer.delay">${__P(thinktime,1000)}</stringProp>
         </ConstantTimer>
         <hashTree/>
 
