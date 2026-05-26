@@ -161,8 +161,7 @@ steps:
         -Jhost=$LB_IP -Jport=80 \
         -Jthreads=10 -Jrampup=30 -Jduration=180 \
         -Jthinktime=1000 \
-        -Jemail=dev1@test.com -Jpassword=Test1234! \
-        2>&1 | tee $HOME/jmeter-results/baseline/jmeter.log
+        -Jemail=dev1@test.com -Jpassword=Test1234!
       echo "Baseline run complete"
 
   - type: Command
@@ -178,8 +177,7 @@ steps:
         -Jhost=$LB_IP -Jport=80 \
         -Jthreads=25 -Jrampup=60 -Jduration=300 \
         -Jthinktime=1000 \
-        -Jemail=dev2@test.com -Jpassword=Test1234! \
-        2>&1 | tee $HOME/jmeter-results/normal/jmeter.log
+        -Jemail=dev2@test.com -Jpassword=Test1234!
       echo "Normal load run complete"
 
   - type: Command
@@ -195,8 +193,7 @@ steps:
         -Jhost=$LB_IP -Jport=80 \
         -Jthreads=50 -Jrampup=90 -Jduration=300 \
         -Jthinktime=1000 \
-        -Jemail=dev3@test.com -Jpassword=Test1234! \
-        2>&1 | tee $HOME/jmeter-results/peak/jmeter.log
+        -Jemail=dev3@test.com -Jpassword=Test1234!
       echo "Peak load run complete"
 
   - type: Command
@@ -213,8 +210,7 @@ steps:
         -Jhost=$LB_IP -Jport=80 \
         -Jthreads=100 -Jrampup=120 -Jduration=180 \
         -Jthinktime=500 \
-        -Jemail=dev4@test.com -Jpassword=Test1234! \
-        2>&1 | tee $HOME/jmeter-results/stress/jmeter.log
+        -Jemail=dev4@test.com -Jpassword=Test1234!
       echo "Stress test complete"
 
   - type: Command
