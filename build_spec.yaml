@@ -159,8 +159,8 @@ steps:
         -l $HOME/jmeter-results/baseline/results.jtl \
         -e -o $HOME/jmeter-results/html/baseline \
         -Jhost=$LB_IP -Jport=80 \
-        -Jthreads=10 -Jrampup=30 -Jduration=180 \
-        -Jthinktime=1000 \
+        -Jthreads=10 -Jread_threads=8 -Jwrite_threads=2 \
+        -Jrampup=30 -Jduration=180 -Jthinktime=1000 \
         -Jemail=dev1@test.com -Jpassword=Test1234!
       echo "Baseline run complete"
 
@@ -175,8 +175,8 @@ steps:
         -l $HOME/jmeter-results/normal/results.jtl \
         -e -o $HOME/jmeter-results/html/normal \
         -Jhost=$LB_IP -Jport=80 \
-        -Jthreads=25 -Jrampup=60 -Jduration=300 \
-        -Jthinktime=1000 \
+        -Jthreads=25 -Jread_threads=20 -Jwrite_threads=5 \
+        -Jrampup=60 -Jduration=300 -Jthinktime=1000 \
         -Jemail=dev2@test.com -Jpassword=Test1234!
       echo "Normal load run complete"
 
@@ -191,8 +191,8 @@ steps:
         -l $HOME/jmeter-results/peak/results.jtl \
         -e -o $HOME/jmeter-results/html/peak \
         -Jhost=$LB_IP -Jport=80 \
-        -Jthreads=50 -Jrampup=90 -Jduration=300 \
-        -Jthinktime=1000 \
+        -Jthreads=50 -Jread_threads=40 -Jwrite_threads=10 \
+        -Jrampup=90 -Jduration=300 -Jthinktime=1000 \
         -Jemail=dev3@test.com -Jpassword=Test1234!
       echo "Peak load run complete"
 
@@ -208,8 +208,8 @@ steps:
         -l $HOME/jmeter-results/stress/results.jtl \
         -e -o $HOME/jmeter-results/html/stress \
         -Jhost=$LB_IP -Jport=80 \
-        -Jthreads=100 -Jrampup=120 -Jduration=180 \
-        -Jthinktime=500 \
+        -Jthreads=100 -Jread_threads=80 -Jwrite_threads=20 \
+        -Jrampup=120 -Jduration=180 -Jthinktime=500 \
         -Jemail=dev4@test.com -Jpassword=Test1234!
       echo "Stress test complete"
 
