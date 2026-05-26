@@ -222,15 +222,18 @@ steps:
         echo "ERROR: Peak results not found"
         exit 1
       fi
-      TOTAL=$(tail -n +2 $RESULTS | wc -l)
-      ERRORS=$(tail -n +2 $RESULTS | awk -F',' '$8=="false"' | wc -l)
-      ERROR_RATE=$(echo "scale=2; $ERRORS * 100 / $TOTAL" | bc)
-      echo "Total samples: $TOTAL | Errors: $ERRORS | Error rate: $ERROR_RATE%"
-      if (( $(echo "$ERROR_RATE > 5" | bc -l) )); then
-        echo "FAIL: Error rate $ERROR_RATE% supera umbral 5%"
-        exit 1
-      fi
-      echo "PASS: Error rate $ERROR_RATE% dentro del umbral 5%"
+      awk -F',' '
+        NR>1 { total++; if ($8=="false") errors++ }
+        END {
+          rate = (total>0) ? errors*100/total : 0
+          printf "Total samples: %d | Errors: %d | Error rate: %.2f%%\n", total, errors, rate
+          if (rate > 5) {
+            printf "FAIL: Error rate %.2f%% supera umbral 5%%\n", rate
+            exit 1
+          }
+          printf "PASS: Error rate %.2f%% dentro del umbral 5%%\n", rate
+        }
+      ' $RESULTS
 
   - type: Command
     name: "Package JMeter Results"
