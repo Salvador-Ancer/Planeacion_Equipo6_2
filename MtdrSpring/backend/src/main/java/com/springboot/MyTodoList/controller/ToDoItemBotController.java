@@ -13,6 +13,7 @@ import com.springboot.MyTodoList.util.BotHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.BotSession;
@@ -29,6 +30,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 import java.util.Optional;
 
 @Component
+@Profile("!local & !test")
 public class ToDoItemBotController implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ToDoItemBotController.class);

@@ -13,9 +13,10 @@ import org.springframework.core.env.Environment;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-// No se carga en el perfil 'test'; en ese caso Spring Boot auto-configura H2.
+// No se carga en los perfiles 'test' ni 'local'.
+// En esos perfiles Spring Boot auto-configura H2 vía application-{profile}.properties.
 @Configuration
-@Profile("!test")
+@Profile("!test & !local")
 public class OracleConfiguration {
 
     Logger logger = LoggerFactory.getLogger(OracleConfiguration.class);
