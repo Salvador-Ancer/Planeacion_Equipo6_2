@@ -48,26 +48,53 @@ spec:
           image: "%DOCKER_REGISTRY%/todolistapp-springboot:0.1"
           imagePullPolicy: Always
           env:
-            - name: db_user
-              value: "ADMIN"
-            - name: db_url
+            # Variables no sensibles
+            - name: DB_URL
               value: "jdbc:oracle:thin:@reacttodoukcyd_medium?TNS_ADMIN=/mtdrworkshop/creds"
-            - name: todo.table.name
-              value: "todoitem"
-            - name: driver_class_name
-              value: "oracle.jdbc.OracleDriver"
+            - name: TNS_ADMIN_PATH
+              value: "/mtdrworkshop/creds"
             - name: OCI_REGION
               value: "%OCI_REGION%"
-            - name: dbpassword
-              value: "gofnov-wuqzi9-zeNqex"
-            - name: ui_username
-              value: "%UI_USERNAME%"
-            - name: ui_password
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            # Secretos — vienen del Secret "app-secrets"
+            - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: frontendadmin
-                  key: password
-                  optional: true
+                  name: app-secrets
+                  key: db-user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: db-password
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: telegram-bot-token
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: groq-api-key
+            - name: ATP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: db-password
+            - name: ORDS_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ords-base-url
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
           volumeMounts:
             - name: creds
               mountPath: /mtdrworkshop/creds
@@ -101,3 +128,49 @@ spec:
             matchLabels:
               app: todolistapp-springboot
 ---
+# HorizontalPodAutoscaler — escala entre 2 y 5 réplicas según CPU
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: todolistapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: todolistapp-springboot-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Secret template — crear con:
+#   kubectl create secret generic app-secrets \
+#     --from-literal=db-user=ADMIN \
+#     --from-literal=db-password=<password> \
+#     --from-literal=telegram-bot-token=<token> \
+#     --from-literal=groq-api-key=<key> \
+#     --from-literal=ords-base-url=<url>
+#
+# Este bloque es solo referencia; NO almacena valores reales.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  db-user: "${DB_USER}"
+  db-password: "${DB_PASSWORD}"
+  telegram-bot-token: "${TELEGRAM_BOT_TOKEN}"
+  groq-api-key: "${GROQ_API_KEY}"
+  ords-base-url: "${ORDS_BASE_URL}"
