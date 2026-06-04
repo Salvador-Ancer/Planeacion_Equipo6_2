@@ -75,11 +75,11 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- H2 en memoria para tests en CI (sustituye Oracle) -->
+		<!-- H2 en memoria para tests en CI y ejecución local (sustituye Oracle) -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>test</scope>
+			<scope>runtime</scope>
 		</dependency>
 		<!-- JWT — autenticación stateless -->
 		<dependency>
