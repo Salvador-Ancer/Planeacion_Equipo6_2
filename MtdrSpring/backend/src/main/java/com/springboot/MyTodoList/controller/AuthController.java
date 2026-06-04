@@ -4,6 +4,7 @@ import com.springboot.MyTodoList.dto.AuthRequest;
 import com.springboot.MyTodoList.dto.AuthResponse;
 import com.springboot.MyTodoList.model.Credencial;
 import com.springboot.MyTodoList.model.Usuario;
+import com.springboot.MyTodoList.security.JwtUtil;
 import com.springboot.MyTodoList.service.CredencialService;
 import com.springboot.MyTodoList.service.UsuarioService;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,12 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final CredencialService credencialService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(UsuarioService usuarioService, CredencialService credencialService) {
+    public AuthController(UsuarioService usuarioService, CredencialService credencialService, JwtUtil jwtUtil) {
         this.usuarioService = usuarioService;
         this.credencialService = credencialService;
+        this.jwtUtil = jwtUtil;
     }
 
     // POST /auth/register — crear cuenta nueva
@@ -83,7 +86,9 @@ public class AuthController {
         String rol = usuario.map(Usuario::getRol).orElse("Developer");
         String fullName = usuario.map(Usuario::getFullName).orElse("");
 
+        String token = jwtUtil.generateToken(credencial.getUserId(), credencial.getEmail(), rol);
+
         return ResponseEntity.ok(new AuthResponse("Login exitoso", true,
-                credencial.getUserId(), credencial.getEmail(), rol, fullName));
+                credencial.getUserId(), credencial.getEmail(), rol, fullName, token));
     }
 }

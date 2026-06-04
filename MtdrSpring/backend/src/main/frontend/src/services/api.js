@@ -2,8 +2,20 @@
 // In production set VITE_API_URL to the deployed backend origin.
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
+function getToken() {
+  try {
+    const user = JSON.parse(localStorage.getItem('opm_user') || '{}')
+    return user.token ?? null
+  } catch {
+    return null
+  }
+}
+
 async function request(method, path, body = null) {
   const headers = { 'Content-Type': 'application/json' }
+
+  const token = getToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
 
   const config = { method, headers }
   if (body) config.body = JSON.stringify(body)

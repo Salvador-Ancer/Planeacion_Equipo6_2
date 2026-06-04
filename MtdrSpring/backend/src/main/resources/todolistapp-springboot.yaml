@@ -88,6 +88,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: ords-base-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt-secret
           resources:
             requests:
               cpu: "250m"
@@ -174,3 +179,4 @@ stringData:
   telegram-bot-token: "${TELEGRAM_BOT_TOKEN}"
   groq-api-key: "${GROQ_API_KEY}"
   ords-base-url: "${ORDS_BASE_URL}"
+  jwt-secret: "${JWT_SECRET}"

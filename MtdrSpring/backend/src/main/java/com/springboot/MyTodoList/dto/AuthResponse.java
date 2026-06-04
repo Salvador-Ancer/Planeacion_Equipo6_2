@@ -7,18 +7,11 @@ public class AuthResponse {
     private String email;
     private String rol;
     private String fullName;
+    private String token;
 
     public AuthResponse(String mensaje, boolean exito) {
         this.mensaje = mensaje;
         this.exito = exito;
-    }
-
-    public AuthResponse(String mensaje, boolean exito, Long userId, String email, String rol) {
-        this.mensaje = mensaje;
-        this.exito = exito;
-        this.userId = userId;
-        this.email = email;
-        this.rol = rol;
     }
 
     public AuthResponse(String mensaje, boolean exito, Long userId, String email, String rol, String fullName) {
@@ -28,6 +21,16 @@ public class AuthResponse {
         this.email = email;
         this.rol = rol;
         this.fullName = fullName;
+    }
+
+    public AuthResponse(String mensaje, boolean exito, Long userId, String email, String rol, String fullName, String token) {
+        this.mensaje = mensaje;
+        this.exito = exito;
+        this.userId = userId;
+        this.email = email;
+        this.rol = rol;
+        this.fullName = fullName;
+        this.token = token;
     }
 
     public String getMensaje() { return mensaje; }
@@ -47,4 +50,7 @@ public class AuthResponse {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
 }
