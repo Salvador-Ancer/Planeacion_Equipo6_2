@@ -39,6 +39,7 @@ export default function Login() {
         fullName: data.fullName || email.split('@')[0],
         email:    data.email,
         rol:      data.rol,
+        token:    data.token,
       }
 
       login(userData)

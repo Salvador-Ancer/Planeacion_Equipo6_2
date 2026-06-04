@@ -7,50 +7,66 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-///*
-//    This class grabs the appropriate values for OracleDataSource,
-//    The method that uses env, grabs it from the environment variables set
-//    in the docker container. The method that uses dbSettings is for local testing
-//    @author: peter.song@oracle.com
-// */
-//
-//
+
+// No se carga en el perfil 'test'; en ese caso Spring Boot auto-configura H2.
 @Configuration
+@Profile("!test")
 public class OracleConfiguration {
-    Logger logger = LoggerFactory.getLogger(DbSettings.class);
+
+    Logger logger = LoggerFactory.getLogger(OracleConfiguration.class);
+
     @Autowired
     private DbSettings dbSettings;
+
     @Autowired
     private Environment env;
+
     @Bean
-    public DataSource dataSource() throws SQLException{
+    public DataSource dataSource() throws SQLException {
         OracleDataSource ds = new OracleDataSource();
-        String dbUrl = env.getProperty("db_url");
-        if (dbUrl != null) {
-            // Production/Kubernetes: use environment variables
-            ds.setDriverType(env.getProperty("driver_class_name"));
-            logger.info("Using Driver " + env.getProperty("driver_class_name"));
-            ds.setURL(dbUrl);
-            logger.info("Using URL: " + dbUrl);
-            ds.setUser(env.getProperty("db_user"));
-            logger.info("Using Username " + env.getProperty("db_user"));
-            ds.setPassword(env.getProperty("dbpassword"));
-        } else {
-            // Local testing: use application.properties via dbSettings
-            System.setProperty("oracle.net.tns_admin", dbSettings.getTnsAdmin());
-            ds.setDriverType(dbSettings.getDriver_class_name());
-            logger.info("Using Driver " + dbSettings.getDriver_class_name());
-            ds.setURL(dbSettings.getUrl());
-            logger.info("Using URL: " + dbSettings.getUrl());
-            ds.setUser(dbSettings.getUsername());
-            logger.info("Using Username: " + dbSettings.getUsername());
-            ds.setPassword(dbSettings.getPassword());
+
+        // Spring's SystemEnvironmentPropertySource convierte DB_URL → db_url,
+        // por lo que esta lectura funciona tanto con variables de entorno en
+        // mayúsculas (Kubernetes) como con el nombre legacy en minúsculas.
+        String dbUrl = env.getProperty("DB_URL");
+        if (dbUrl == null) {
+            dbUrl = env.getProperty("db_url"); // compatibilidad con despliegues anteriores
         }
+
+        if (dbUrl != null) {
+            // Kubernetes / Docker — credenciales desde env vars
+            String dbUser     = coalesce(env.getProperty("DB_USER"),     env.getProperty("db_user"));
+            String dbPassword = coalesce(env.getProperty("DB_PASSWORD"), env.getProperty("dbpassword"));
+            String tnsAdmin   = env.getProperty("TNS_ADMIN_PATH");
+
+            if (tnsAdmin != null) {
+                System.setProperty("oracle.net.tns_admin", tnsAdmin);
+            }
+
+            ds.setURL(dbUrl);
+            ds.setUser(dbUser);
+            ds.setPassword(dbPassword);
+            logger.info("DataSource Oracle configurado desde variables de entorno. URL: {}", dbUrl);
+        } else {
+            // Desarrollo local — credenciales desde application.properties
+            if (dbSettings.getTnsAdmin() != null) {
+                System.setProperty("oracle.net.tns_admin", dbSettings.getTnsAdmin());
+            }
+            ds.setURL(dbSettings.getUrl());
+            ds.setUser(dbSettings.getUsername());
+            ds.setPassword(dbSettings.getPassword());
+            logger.info("DataSource Oracle configurado desde application.properties. URL: {}", dbSettings.getUrl());
+        }
+
         return ds;
+    }
+
+    private String coalesce(String first, String second) {
+        return first != null ? first : second;
     }
 }
