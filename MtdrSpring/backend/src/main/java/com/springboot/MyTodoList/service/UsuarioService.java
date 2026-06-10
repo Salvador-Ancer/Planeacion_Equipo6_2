@@ -10,13 +10,17 @@ import java.util.Optional;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, EmbeddingSyncService embeddingSyncService) {
         this.usuarioRepository = usuarioRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public Usuario guardar(Usuario usuario) {
-        return usuarioRepository.save(usuario);
+        Usuario guardado = usuarioRepository.save(usuario);
+        embeddingSyncService.syncUsuario(guardado.getId());
+        return guardado;
     }
 
     public List<Usuario> obtenerTodos() {

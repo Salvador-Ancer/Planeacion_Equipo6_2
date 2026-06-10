@@ -10,13 +10,17 @@ import java.util.Optional;
 public class TareaHistorialService {
 
     private final TareaHistorialRepository tareaHistorialRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public TareaHistorialService(TareaHistorialRepository tareaHistorialRepository) {
+    public TareaHistorialService(TareaHistorialRepository tareaHistorialRepository, EmbeddingSyncService embeddingSyncService) {
         this.tareaHistorialRepository = tareaHistorialRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public TareaHistorial guardar(TareaHistorial historial) {
-        return tareaHistorialRepository.save(historial);
+        TareaHistorial guardado = tareaHistorialRepository.save(historial);
+        embeddingSyncService.syncTareaHistorial(guardado.getId());
+        return guardado;
     }
 
     public List<TareaHistorial> obtenerTodos() {

@@ -31,42 +31,15 @@ public class RagService {
     private static final String ORDS_USER = "ADMIN";
     private static final String GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
     private static final String GROQ_MODEL = "llama-3.3-70b-versatile";
+    private static final String EMBEDDING_MODEL = "ALL_MINILM_L12_V2";
+    private static final int EMBEDDING_DIM = 384;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    // ── Detectar qué tablas necesita la pregunta ─────────────────
-    private List<String> detectarIntencion(String pregunta) {
-        String p = pregunta.toLowerCase();
-        List<String> tablas = new ArrayList<>();
-        tablas.add("proyectos");
-
-        if (p.contains("sprint") || p.contains("iteracion") || p.contains("ciclo"))
-            tablas.add("sprints");
-        if (p.contains("tarea") || p.contains("task") || p.contains("pendiente")
-                || p.contains("bloqueada") || p.contains("progreso")
-                || p.contains("completada") || p.contains("asignada"))
-            tablas.add("tareas");
-        if (p.contains("kpi") || p.contains("metrica") || p.contains("velocidad")
-                || p.contains("rendimiento") || p.contains("completitud")
-                || p.contains("estimacion"))
-            tablas.add("kpis");
-        if (p.contains("usuario") || p.contains("quien") || p.contains("equipo")
-                || p.contains("miembro") || p.contains("persona") || p.contains("asignado"))
-            tablas.add("usuarios");
-        if (p.contains("historial") || p.contains("cambio") || p.contains("antes")
-                || p.contains("anterior") || p.contains("modifico"))
-            tablas.add("historial");
-        if (p.contains("resumen") || p.contains("estado") || p.contains("como va")
-                || p.contains("overview") || p.contains("general")) {
-            tablas.clear();
-            tablas.add("proyectos");
-            tablas.add("sprints");
-            tablas.add("tareas");
-            tablas.add("kpis");
-        }
-
-        return tablas;
+    // ── Escapar texto para usarlo dentro de un literal SQL ────────
+    private String escapeSql(String input) {
+        return input.replace("'", "''");
     }
 
     // ── Ejecutar SQL via ORDS ─────────────────────────────────────
@@ -101,9 +74,22 @@ public class RagService {
         return rows;
     }
 
-    // ── Construir contexto filtrado por proyecto ──────────────────
+    // ── Generar el embedding de la pregunta y devolverlo como literal TO_VECTOR(...) ──
+    private String embedQuestionAsVectorExpr(String pregunta) throws Exception {
+        String escaped = escapeSql(pregunta);
+        List<Map<String, Object>> rows = runSql(
+            "SELECT VECTOR_EMBEDDING(" + EMBEDDING_MODEL + " USING '" + escaped + "' AS data) AS EMB FROM dual"
+        );
+        if (rows.isEmpty() || rows.get(0).get("emb") == null) {
+            throw new IllegalStateException("No se pudo generar el embedding de la pregunta");
+        }
+        String embeddingJson = mapper.writeValueAsString(rows.get(0).get("emb"));
+        return "TO_VECTOR('" + embeddingJson + "', " + EMBEDDING_DIM + ", FLOAT32)";
+    }
+
+    // ── Construir contexto filtrado por proyecto y ordenado por similitud semántica ──
     private String getContext(Long proyectoId, String pregunta) throws Exception {
-        List<String> tablas = detectarIntencion(pregunta);
+        String vectorExpr = embedQuestionAsVectorExpr(pregunta);
         StringBuilder ctx = new StringBuilder();
 
         // Siempre: info del proyecto
@@ -122,14 +108,16 @@ public class RagService {
                .append(" → ").append(p.get("fecha_fin")).append("\n");
         }
 
-        if (tablas.contains("sprints")) {
-            List<Map<String, Object>> sprints = runSql(
-                "SELECT NOMBRE, ESTATUS, OBJETIVO, " +
-                "TO_CHAR(FECHA_INICIO, 'YYYY-MM-DD') as FECHA_INICIO, " +
-                "TO_CHAR(FECHA_FIN, 'YYYY-MM-DD') as FECHA_FIN " +
-                "FROM ADMIN.SPRINTS WHERE PROYECTO_ID = " + proyectoId + " " +
-                "ORDER BY FECHA_INICIO DESC"
-            );
+        // Sprints más relevantes para la pregunta
+        List<Map<String, Object>> sprints = runSql(
+            "SELECT NOMBRE, ESTATUS, OBJETIVO, " +
+            "TO_CHAR(FECHA_INICIO, 'YYYY-MM-DD') as FECHA_INICIO, " +
+            "TO_CHAR(FECHA_FIN, 'YYYY-MM-DD') as FECHA_FIN " +
+            "FROM ADMIN.SPRINTS WHERE PROYECTO_ID = " + proyectoId + " " +
+            "ORDER BY VECTOR_DISTANCE(EMBEDDING, " + vectorExpr + ", COSINE) " +
+            "FETCH FIRST 5 ROWS ONLY"
+        );
+        if (!sprints.isEmpty()) {
             ctx.append("\nSPRINTS:\n");
             for (Map<String, Object> s : sprints) {
                 ctx.append("- ").append(s.get("nombre"))
@@ -140,22 +128,25 @@ public class RagService {
             }
         }
 
-        if (tablas.contains("tareas")) {
-            List<Map<String, Object>> tareas = runSql(
-                "SELECT t.NOMBRE, t.ESTATUS, t.PRIORIDAD, " +
-                "t.HORAS_ESTIMADAS, t.HORAS_REALES, t.STORY_POINTS, " +
-                "u.FULL_NAME as ASIGNADO, s.NOMBRE as SPRINT " +
-                "FROM ADMIN.TAREAS t " +
-                "LEFT JOIN ADMIN.USUARIOS u ON u.USER_ID = t.ASIGNADO_A " +
-                "LEFT JOIN ADMIN.SPRINTS s ON s.SPRINT_ID = t.SPRINT_ID " +
-                "WHERE t.PROYECTO_ID = " + proyectoId + " AND t.BORRADO = 0 " +
-                "ORDER BY t.PRIORIDAD DESC"
-            );
+        // Tareas más relevantes para la pregunta
+        List<Map<String, Object>> tareas = runSql(
+            "SELECT t.NOMBRE, t.ESTATUS, t.PRIORIDAD, t.DESCRIPCION, " +
+            "t.HORAS_ESTIMADAS, t.HORAS_REALES, t.STORY_POINTS, " +
+            "u.FULL_NAME as ASIGNADO, s.NOMBRE as SPRINT " +
+            "FROM ADMIN.TAREAS t " +
+            "LEFT JOIN ADMIN.USUARIOS u ON u.USER_ID = t.ASIGNADO_A " +
+            "LEFT JOIN ADMIN.SPRINTS s ON s.SPRINT_ID = t.SPRINT_ID " +
+            "WHERE t.PROYECTO_ID = " + proyectoId + " AND t.BORRADO = 0 " +
+            "ORDER BY VECTOR_DISTANCE(t.EMBEDDING, " + vectorExpr + ", COSINE) " +
+            "FETCH FIRST 8 ROWS ONLY"
+        );
+        if (!tareas.isEmpty()) {
             ctx.append("\nTAREAS:\n");
             for (Map<String, Object> t : tareas) {
                 ctx.append("- ").append(t.get("nombre"))
                    .append(" | ").append(t.get("estatus"))
                    .append(" | Prioridad: ").append(t.get("prioridad"))
+                   .append(" | ").append(t.get("descripcion"))
                    .append(" | Asignado: ").append(t.get("asignado"))
                    .append(" | Sprint: ").append(t.get("sprint"))
                    .append(" | Horas: ").append(t.get("horas_reales"))
@@ -163,12 +154,14 @@ public class RagService {
             }
         }
 
-        if (tablas.contains("kpis")) {
-            List<Map<String, Object>> kpis = runSql(
-                "SELECT NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD " +
-                "FROM ADMIN.KPIS WHERE PROYECTO_ID = " + proyectoId + " " +
-                "ORDER BY FECHA_MEDICION DESC"
-            );
+        // KPIs más relevantes para la pregunta
+        List<Map<String, Object>> kpis = runSql(
+            "SELECT NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD " +
+            "FROM ADMIN.KPIS WHERE PROYECTO_ID = " + proyectoId + " " +
+            "ORDER BY VECTOR_DISTANCE(EMBEDDING, " + vectorExpr + ", COSINE) " +
+            "FETCH FIRST 5 ROWS ONLY"
+        );
+        if (!kpis.isEmpty()) {
             ctx.append("\nKPIs:\n");
             for (Map<String, Object> k : kpis) {
                 ctx.append("- ").append(k.get("nombre"))
@@ -179,16 +172,19 @@ public class RagService {
             }
         }
 
-        if (tablas.contains("usuarios")) {
-            List<Map<String, Object>> usuarios = runSql(
-                "SELECT DISTINCT u.FULL_NAME, u.ROL, " +
-                "COUNT(t.TAREA_ID) as TOTAL_TAREAS, " +
-                "SUM(CASE WHEN t.ESTATUS != 'Completado' THEN 1 ELSE 0 END) as PENDIENTES " +
-                "FROM ADMIN.USUARIOS u " +
-                "JOIN ADMIN.TAREAS t ON t.ASIGNADO_A = u.USER_ID " +
-                "WHERE t.PROYECTO_ID = " + proyectoId + " AND t.BORRADO = 0 " +
-                "GROUP BY u.FULL_NAME, u.ROL"
-            );
+        // Equipo más relevante para la pregunta
+        List<Map<String, Object>> usuarios = runSql(
+            "SELECT u.FULL_NAME, u.ROL, " +
+            "COUNT(t.TAREA_ID) as TOTAL_TAREAS, " +
+            "SUM(CASE WHEN t.ESTATUS != 'Completado' THEN 1 ELSE 0 END) as PENDIENTES " +
+            "FROM ADMIN.USUARIOS u " +
+            "JOIN ADMIN.TAREAS t ON t.ASIGNADO_A = u.USER_ID " +
+            "WHERE t.PROYECTO_ID = " + proyectoId + " AND t.BORRADO = 0 " +
+            "GROUP BY u.USER_ID, u.FULL_NAME, u.ROL, u.EMBEDDING " +
+            "ORDER BY VECTOR_DISTANCE(MIN(u.EMBEDDING), " + vectorExpr + ", COSINE) " +
+            "FETCH FIRST 5 ROWS ONLY"
+        );
+        if (!usuarios.isEmpty()) {
             ctx.append("\nEQUIPO:\n");
             for (Map<String, Object> u : usuarios) {
                 ctx.append("- ").append(u.get("full_name"))
@@ -198,20 +194,21 @@ public class RagService {
             }
         }
 
-        if (tablas.contains("historial")) {
-            List<Map<String, Object>> historial = runSql(
-                "SELECT th.CAMPO, th.VALOR_ANTERIOR, th.VALOR_NUEVO, " +
-                "u.FULL_NAME as MODIFICADO_POR, " +
-                "TO_CHAR(th.MODIFICADO_EN, 'YYYY-MM-DD HH24:MI') as FECHA, " +
-                "t.NOMBRE as TAREA " +
-                "FROM ADMIN.TAREA_HISTORIAL th " +
-                "JOIN ADMIN.TAREAS t ON t.TAREA_ID = th.TAREA_ID " +
-                "LEFT JOIN ADMIN.USUARIOS u ON u.USER_ID = th.MODIFICADO_POR " +
-                "WHERE t.PROYECTO_ID = " + proyectoId + " " +
-                "ORDER BY th.MODIFICADO_EN DESC " +
-                "FETCH FIRST 10 ROWS ONLY"
-            );
-            ctx.append("\nHISTORIAL RECIENTE:\n");
+        // Historial reciente más relevante para la pregunta
+        List<Map<String, Object>> historial = runSql(
+            "SELECT th.CAMPO, th.VALOR_ANTERIOR, th.VALOR_NUEVO, " +
+            "u.FULL_NAME as MODIFICADO_POR, " +
+            "TO_CHAR(th.MODIFICADO_EN, 'YYYY-MM-DD HH24:MI') as FECHA, " +
+            "t.NOMBRE as TAREA " +
+            "FROM ADMIN.TAREA_HISTORIAL th " +
+            "JOIN ADMIN.TAREAS t ON t.TAREA_ID = th.TAREA_ID " +
+            "LEFT JOIN ADMIN.USUARIOS u ON u.USER_ID = th.MODIFICADO_POR " +
+            "WHERE t.PROYECTO_ID = " + proyectoId + " " +
+            "ORDER BY VECTOR_DISTANCE(th.EMBEDDING, " + vectorExpr + ", COSINE) " +
+            "FETCH FIRST 8 ROWS ONLY"
+        );
+        if (!historial.isEmpty()) {
+            ctx.append("\nHISTORIAL RELEVANTE:\n");
             for (Map<String, Object> h : historial) {
                 ctx.append("- [").append(h.get("fecha")).append("] ")
                    .append(h.get("tarea")).append(": ")
