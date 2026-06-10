@@ -7,10 +7,14 @@ public class AiChatRequest {
 
     private String system;
     private List<Map<String, String>> messages;
+    private Long userId;
 
     public String getSystem() { return system; }
     public void setSystem(String system) { this.system = system; }
 
     public List<Map<String, String>> getMessages() { return messages; }
     public void setMessages(List<Map<String, String>> messages) { this.messages = messages; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

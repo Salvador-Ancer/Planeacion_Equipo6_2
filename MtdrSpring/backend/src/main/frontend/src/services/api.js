@@ -109,12 +109,12 @@ export const usuariosApi = {
 
 // AI Chat — proxied through backend to keep Anthropic key server-side
 export const aiApi = {
-  chat: (messages, system) => post('/ai/chat', { messages, system }),
+  chat: (messages, system, userId) => post('/ai/chat', { messages, system, userId }),
 }
 
 // RAG Chat — uses Groq + ORDS for context-aware project queries
 export const ragApi = {
-  chat: (proyectoId, pregunta) => post('/rag/chat', { proyectoId, pregunta }),
+  chat: (proyectoId, pregunta, userId) => post('/rag/chat', { proyectoId, pregunta, userId }),
 }
 
 export default { authApi, proyectosApi, tareasApi, sprintsApi, kpisApi, usuariosApi, aiApi, ragApi }

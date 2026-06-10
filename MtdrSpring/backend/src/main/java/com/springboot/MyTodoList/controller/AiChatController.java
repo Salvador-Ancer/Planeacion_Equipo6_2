@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.springboot.MyTodoList.dto.AiChatRequest;
+import com.springboot.MyTodoList.service.TelegramNotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/ai")
 public class AiChatController {
+
+    @Autowired(required = false)
+    private TelegramNotificationService telegramNotificationService;
 
     @Value("${anthropic.api.key:}")
     private String anthropicApiKey;
@@ -74,6 +79,10 @@ public class AiChatController {
             String text = respJson.path("content").elements().hasNext()
                     ? respJson.path("content").get(0).path("text").asText("")
                     : "";
+
+            if (telegramNotificationService != null) {
+                telegramNotificationService.notifyUser(req.getUserId(), text);
+            }
 
             return ResponseEntity.ok(Map.of("content", text));
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ragApi, sprintsApi, proyectosApi } from '../../services/api'
+import { useAuth } from '../../App'
 
 const QUICK_OPTIONS = [
   { label: 'Resumen del sprint', prompt: '¿Cuál es el resumen del sprint actual?' },
@@ -66,6 +67,7 @@ function TypingIndicator() {
 }
 
 export default function ChatWidget() {
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -113,7 +115,7 @@ export default function ChatWidget() {
 
     try {
       if (!proyectoId) throw new Error('No se pudo detectar el proyecto activo.')
-      const data = await ragApi.chat(proyectoId, userMsg)
+      const data = await ragApi.chat(proyectoId, userMsg, user?.userId)
       const reply = data?.respuesta || ''
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {

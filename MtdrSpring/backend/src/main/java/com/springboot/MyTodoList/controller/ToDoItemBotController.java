@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.BotSession;
 import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
 import org.telegram.telegrambots.longpolling.starter.AfterBotRegistration;
@@ -58,9 +57,10 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 
 	public ToDoItemBotController(BotProps bp, ToDoItemService tsvc, DeepSeekService ds,
 	                              TareaService tareas, SprintService sprints,
-	                              KpiService kpis, UsuarioService usuarios) {
+	                              KpiService kpis, UsuarioService usuarios,
+	                              TelegramClient telegramClient) {
 		this.botProps = bp;
-		this.telegramClient = new OkHttpTelegramClient(getBotToken());
+		this.telegramClient = telegramClient;
 		this.toDoItemService = tsvc;
 		this.deepSeekService = ds;
 		this.tareaService = tareas;

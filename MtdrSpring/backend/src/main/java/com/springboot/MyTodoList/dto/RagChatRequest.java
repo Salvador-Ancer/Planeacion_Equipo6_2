@@ -4,10 +4,14 @@ public class RagChatRequest {
 
     private Long proyectoId;
     private String pregunta;
+    private Long userId;
 
     public Long getProyectoId() { return proyectoId; }
     public void setProyectoId(Long proyectoId) { this.proyectoId = proyectoId; }
 
     public String getPregunta() { return pregunta; }
     public void setPregunta(String pregunta) { this.pregunta = pregunta; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

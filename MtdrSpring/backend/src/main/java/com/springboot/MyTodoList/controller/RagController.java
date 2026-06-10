@@ -2,6 +2,8 @@ package com.springboot.MyTodoList.controller;
 
 import com.springboot.MyTodoList.dto.RagChatRequest;
 import com.springboot.MyTodoList.service.RagService;
+import com.springboot.MyTodoList.service.TelegramNotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,9 @@ import java.util.Map;
 public class RagController {
 
     private final RagService ragService;
+
+    @Autowired(required = false)
+    private TelegramNotificationService telegramNotificationService;
 
     public RagController(RagService ragService) {
         this.ragService = ragService;
@@ -27,6 +32,9 @@ public class RagController {
 
         try {
             String respuesta = ragService.ask(req.getProyectoId(), req.getPregunta());
+            if (telegramNotificationService != null) {
+                telegramNotificationService.notifyUser(req.getUserId(), respuesta);
+            }
             return ResponseEntity.ok(Map.of("respuesta", respuesta));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
