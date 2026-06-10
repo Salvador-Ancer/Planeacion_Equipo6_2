@@ -33,6 +33,9 @@ public class TareaHistorial {
     @Column(name = "ORIGEN")
     private String origen;
 
+    @column(name = "insight", columnDefinition = "VECTOR")
+    float[] insight;
+
     // getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

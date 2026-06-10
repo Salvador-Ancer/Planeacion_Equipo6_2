@@ -1,41 +1,61 @@
 package com.springboot.MyTodoList.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springboot.MyTodoList.model.Tarea;
+import com.springboot.MyTodoList.model.Usuario;
+import com.springboot.MyTodoList.service.CredencialService;
+import com.springboot.MyTodoList.service.KpiCalculatorService;
 import com.springboot.MyTodoList.service.TareaService;
 import com.springboot.MyTodoList.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Tests de TareaController usando Mockito puro (sin levantar Spring).
- *
- * Se mockean TareaService y UsuarioService para aislar la lógica del controller.
- * Verificamos los códigos HTTP y los datos devueltos.
- */
-@ExtendWith(MockitoExtension.class)
-public class TareaControllerTest {
+@WebMvcTest(controllers = TareaController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class TareaControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockBean
     private TareaService tareaService;
 
-    @Mock
+    @MockBean
     private UsuarioService usuarioService;
 
-    @InjectMocks
-    private TareaController tareaController;
+    @MockBean
+    private KpiCalculatorService kpiCalculatorService;
+
+    @MockBean
+    private CredencialService credencialService;
 
     private Tarea tareaEjemplo;
 
@@ -53,128 +73,200 @@ public class TareaControllerTest {
         tareaEjemplo.setFechaCreacion(new Date());
     }
 
-    // TEST 1: GET /tareas — retorna lista 
+    // [Null/blank validation] Verify blank nombre returns 400 with message
     @Test
-    void getAll_debeRetornarListaDeTareas() {
-        when(tareaService.obtenerTodas()).thenReturn(Arrays.asList(tareaEjemplo));
-
-        List<Tarea> resultado = tareaController.getAll();
-
-        assertEquals(1, resultado.size());
-        assertEquals("Implementar login", resultado.get(0).getNombre());
-        verify(tareaService, times(1)).obtenerTodas();
-    }
-
-    // TEST 2: GET /tareas/{id} — tarea encontrada -> 200
-    @Test
-    void getById_cuandoExiste_debeRetornar200() {
-        when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
-
-        ResponseEntity<Tarea> response = tareaController.getById(1L);
-
-        assertEquals(200, response.getStatusCode().value());
-        assertNotNull(response.getBody());
-        assertEquals(1L, response.getBody().getId());
-    }
-
-    // TEST 3: GET /tareas/{id} — tarea no encontrada -> 404 
-    @Test
-    void getById_cuandoNoExiste_debeRetornar404() {
-        when(tareaService.obtenerPorId(999L)).thenReturn(Optional.empty());
-
-        ResponseEntity<Tarea> response = tareaController.getById(999L);
-
-        assertEquals(404, response.getStatusCode().value());
-    }
-
-    // TEST 4: POST /tareas — crear tarea válida -> 201 
-    @Test
-    void create_conNombreValido_debeRetornar201() {
-        Tarea nueva = new Tarea();
-        nueva.setNombre("Nueva tarea");
-        nueva.setBorrado(0);
-        nueva.setFechaCreacion(new Date());
-
-        when(tareaService.guardar(any(Tarea.class))).thenReturn(nueva);
-
-        ResponseEntity<?> response = tareaController.create(nueva);
-
-        assertEquals(201, response.getStatusCode().value());
-        verify(tareaService, times(1)).guardar(any(Tarea.class));
-    }
-
-    // TEST 5: POST /tareas — nombre vacío -> 400 
-    @Test
-    void create_sinNombre_debeRetornar400() {
+    void create_nombreIsBlank_returns400() throws Exception {
         Tarea sinNombre = new Tarea();
-        sinNombre.setNombre("");  // nombre en blanco
+        sinNombre.setId(123L);
+        sinNombre.setNombre("   ");
 
-        ResponseEntity<?> response = tareaController.create(sinNombre);
+        var result = mockMvc.perform(post("/tareas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sinNombre)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
 
-        assertEquals(400, response.getStatusCode().value());
-        // El service NO debe llamarse si la validación falla
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("El campo 'nombre' es obligatorio");
         verify(tareaService, never()).guardar(any(Tarea.class));
     }
 
-    // TEST 6: PUT /tareas/{id} — actualizar existente -> 200 
+    // [Happy path] Verify valid Tarea saved and returns 201 with body
     @Test
-    void update_cuandoExiste_debeRetornar200() {
-        Tarea actualizada = new Tarea();
-        actualizada.setNombre("Login actualizado");
-        actualizada.setEstatus("En progreso");
-        actualizada.setBorrado(0);
-        actualizada.setFechaCreacion(new Date());
+    void create_validTarea_returns201WithBody() throws Exception {
+        Tarea request = new Tarea();
+        request.setId(123L);
+        request.setNombre("Nueva tarea");
+        request.setBorrado(0);
+        request.setFechaCreacion(new Date());
 
-        when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
-        when(tareaService.guardar(any(Tarea.class))).thenReturn(actualizada);
+        Tarea saved = new Tarea();
+        saved.setId(123L);
+        saved.setNombre("Nueva tarea");
+        saved.setBorrado(0);
+        saved.setFechaCreacion(request.getFechaCreacion());
 
-        ResponseEntity<Tarea> response = tareaController.update(1L, actualizada);
+        when(tareaService.guardar(any(Tarea.class))).thenReturn(saved);
 
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals("Login actualizado", response.getBody().getNombre());
+        var result = mockMvc.perform(post("/tareas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Tarea responseBody = objectMapper.readValue(result.getResponse().getContentAsString(), Tarea.class);
+        assertThat(responseBody.getId()).isEqualTo(123L);
+        assertThat(responseBody.getNombre()).isEqualTo("Nueva tarea");
+        verify(tareaService, times(1)).guardar(any(Tarea.class));
     }
 
-    // TEST 7: PUT /tareas/{id} — id no existe -> 404 
+    // [Default values] Verify null borrado/fechaCreacion are defaulted before save
     @Test
-    void update_cuandoNoExiste_debeRetornar404() {
+    void create_missingOptionalFields_setsDefaults() throws Exception {
+        Instant before = Instant.now();
+
+        Tarea request = new Tarea();
+        request.setId(123L);
+        request.setNombre("Tarea sin defaults");
+        request.setBorrado(null);
+        request.setFechaCreacion(null);
+
+        when(tareaService.guardar(any(Tarea.class))).thenReturn(tareaEjemplo);
+
+        mockMvc.perform(post("/tareas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<Tarea> captor = ArgumentCaptor.forClass(Tarea.class);
+        verify(tareaService, times(1)).guardar(captor.capture());
+
+        Tarea toSave = captor.getValue();
+        assertThat(toSave.getBorrado()).isEqualTo(0);
+        assertThat(toSave.getFechaCreacion()).isNotNull();
+        assertThat(toSave.getFechaCreacion().toInstant())
+                .isBetween(before.minus(2, ChronoUnit.SECONDS), Instant.now().plus(2, ChronoUnit.SECONDS));
+    }
+
+    // [Happy path] Verify obtenerTodas called and list returned
+    @Test
+    void getAll_always_returnsListWith200() throws Exception {
+        when(tareaService.obtenerTodas()).thenReturn(List.of(tareaEjemplo));
+
+        var result = mockMvc.perform(get("/tareas"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Tarea[] response = objectMapper.readValue(result.getResponse().getContentAsString(), Tarea[].class);
+        assertThat(response).hasSize(1);
+        assertThat(response[0].getNombre()).isEqualTo("Implementar login");
+        verify(tareaService, times(1)).obtenerTodas();
+    }
+
+    // [Found] Verify present Optional returns 200 with body
+    @Test
+    void getById_existingId_returns200WithTarea() throws Exception {
+        when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
+
+        var result = mockMvc.perform(get("/tareas/1"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Tarea response = objectMapper.readValue(result.getResponse().getContentAsString(), Tarea.class);
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getNombre()).isEqualTo("Implementar login");
+        verify(tareaService, times(1)).obtenerPorId(1L);
+    }
+
+    // [Not found] Verify empty Optional returns 404
+    @Test
+    void getById_nonExistingId_returns404() throws Exception {
         when(tareaService.obtenerPorId(999L)).thenReturn(Optional.empty());
 
-        ResponseEntity<Tarea> response = tareaController.update(999L, tareaEjemplo);
+        mockMvc.perform(get("/tareas/999"))
+                .andExpect(status().isNotFound());
 
-        assertEquals(404, response.getStatusCode().value());
+        verify(tareaService, times(1)).obtenerPorId(999L);
     }
 
-    // TEST 8: DELETE /tareas/{id} — eliminar existente -> 204 
+    // [Not found] Verify update returns 404 when tarea does not exist
     @Test
-    void delete_cuandoExiste_debeRetornar204() {
+    void update_nonExistingId_returns404() throws Exception {
+        when(tareaService.obtenerPorId(999L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/tareas/999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tareaEjemplo)))
+                .andExpect(status().isNotFound());
+
+        verify(tareaService, never()).guardar(any(Tarea.class));
+    }
+
+    // [Invalid user] Verify invalid asignadoA returns 400
+    @Test
+    void update_invalidAsignadoA_returns400() throws Exception {
         when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
-        doNothing().when(tareaService).eliminar(1L);
+        when(usuarioService.obtenerPorId(55L)).thenReturn(Optional.empty());
 
-        ResponseEntity<Void> response = tareaController.delete(1L);
+        Tarea request = new Tarea();
+        request.setNombre("Actualizar tarea");
+        request.setAsignadoA(55L);
 
-        assertEquals(204, response.getStatusCode().value());
+        mockMvc.perform(put("/tareas/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(tareaService, never()).guardar(any(Tarea.class));
+    }
+
+    // [KPI recalculation] Verify KPI services are called after save when sprintId/proyectoId present
+    @Test
+    void update_validTareaWithSprint_triggersKpiRecalculation() throws Exception {
+        when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
+
+        Tarea request = new Tarea();
+        request.setNombre("Tarea actualizada");
+        request.setSprintId(10L);
+        request.setProyectoId(100L);
+
+        Tarea saved = new Tarea();
+        saved.setId(1L);
+        saved.setNombre("Tarea actualizada");
+        saved.setSprintId(10L);
+        saved.setProyectoId(100L);
+        saved.setBorrado(0);
+        saved.setFechaCreacion(tareaEjemplo.getFechaCreacion());
+
+        when(tareaService.guardar(any(Tarea.class))).thenReturn(saved);
+
+        mockMvc.perform(put("/tareas/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        verify(kpiCalculatorService, times(1)).recalcularPorSprint(10L, 100L);
+        verify(kpiCalculatorService, times(1)).recalcularPorProyecto(100L);
+    }
+
+    // [Not found] Verify delete returns 404 when tarea does not exist
+    @Test
+    void delete_nonExistingId_returns404() throws Exception {
+        when(tareaService.obtenerPorId(999L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(delete("/tareas/999"))
+                .andExpect(status().isNotFound());
+
+        verify(tareaService, never()).eliminar(999L);
+    }
+
+    // [Happy path] Verify delete calls eliminar and returns 204
+    @Test
+    void delete_existingId_returns204() throws Exception {
+        when(tareaService.obtenerPorId(1L)).thenReturn(Optional.of(tareaEjemplo));
+
+        mockMvc.perform(delete("/tareas/1"))
+                .andExpect(status().isNoContent());
+
         verify(tareaService, times(1)).eliminar(1L);
-    }
-
-    // TEST 9: DELETE /tareas/{id} — no existe -> 404 
-    @Test
-    void delete_cuandoNoExiste_debeRetornar404() {
-        when(tareaService.obtenerPorId(999L)).thenReturn(Optional.empty());
-
-        ResponseEntity<Void> response = tareaController.delete(999L);
-
-        assertEquals(404, response.getStatusCode().value());
-        verify(tareaService, never()).eliminar(anyLong());
-    }
-
-    // TEST 10: GET /tareas/estatus/{estatus} 
-    @Test
-    void getByEstatus_debeRetornarTareasFiltradas() {
-        when(tareaService.obtenerPorEstatus("Pendiente")).thenReturn(List.of(tareaEjemplo));
-
-        List<Tarea> resultado = tareaController.getByEstatus("Pendiente");
-
-        assertEquals(1, resultado.size());
-        assertEquals("Pendiente", resultado.get(0).getEstatus());
     }
 }

@@ -18,6 +18,9 @@ public class TareaKpi {
     @Column(name = "PESO")
     private Double peso;
 
+    @column(name = "insight", columnDefinition = "VECTOR")
+    float[] insight;
+
     // getters y setters
     public Long getTareaId() { return tareaId; }
     public void setTareaId(Long tareaId) { this.tareaId = tareaId; }

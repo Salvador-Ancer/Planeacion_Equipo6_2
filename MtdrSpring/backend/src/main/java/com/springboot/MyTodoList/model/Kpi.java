@@ -50,6 +50,9 @@ public class Kpi {
     @Column(name = "ACTUALIZADO_POR")
     private Long actualizadoPor;
 
+    @column(name = "insight", columnDefinition = "VECTOR")
+    float[] insight;
+
     // getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

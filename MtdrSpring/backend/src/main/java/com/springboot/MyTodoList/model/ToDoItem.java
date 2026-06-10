@@ -20,6 +20,9 @@ public class ToDoItem {
     OffsetDateTime creation_ts;
     @Column(name = "done")
     boolean done;
+    @column(name = "insight", columnDefinition = "VECTOR")
+    float[] insight;
+    
     public ToDoItem(){
 
     }
