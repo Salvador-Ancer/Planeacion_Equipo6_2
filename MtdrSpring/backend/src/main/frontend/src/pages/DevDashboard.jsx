@@ -17,9 +17,11 @@ const PRIORIDAD_COLOR = { Alta: '#A85550', Media: '#D97706', Baja: '#16A34A' }
 function HorasModal({ task, onSave, onClose }) {
   const [horas,   setHoras]   = useState('')
   const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState('')
 
   const handleSave = async () => {
     setLoading(true)
+    setError('')
     try {
       const updated = await tareasApi.update(task.id, {
         ...task,
@@ -27,7 +29,9 @@ function HorasModal({ task, onSave, onClose }) {
         horasReales: Number(horas) || 0,
       })
       onSave(updated)
-    } catch {} finally {
+    } catch (e) {
+      setError(e.message || 'Error al guardar. Intenta de nuevo.')
+    } finally {
       setLoading(false)
     }
   }
@@ -59,6 +63,9 @@ function HorasModal({ task, onSave, onClose }) {
           <p style={{ fontSize: 11, color: '#A85550', margin: '0 0 16px' }}>Ingresa un número mayor a 0</p>
         )}
         {(horas === '' || Number(horas) > 0) && <div style={{ marginBottom: 16 }} />}
+        {error && (
+          <p style={{ fontSize: 12, color: '#A85550', padding: '8px 10px', background: '#FEE2E2', borderRadius: 6, margin: '0 0 12px' }}>{error}</p>
+        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button variant="primary" loading={loading} onClick={handleSave} disabled={!horas || Number(horas) <= 0}>Guardar</Button>

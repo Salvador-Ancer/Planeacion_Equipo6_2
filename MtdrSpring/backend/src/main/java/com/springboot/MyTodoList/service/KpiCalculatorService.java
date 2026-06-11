@@ -56,7 +56,7 @@ public class KpiCalculatorService {
         Optional<Kpi> existing = kpiRepository.findByNombreAndSprintId(nombre, sprintId);
         Kpi kpi = existing.orElseGet(() -> {
             Kpi k = new Kpi();
-            k.setId(System.currentTimeMillis() + nombre.hashCode());
+            k.setId(Math.abs(System.currentTimeMillis() % 1_000_000_000L + Math.abs(nombre.hashCode() % 100_000L)));
             k.setNombre(nombre);
             k.setUnidad(unidad);
             k.setSprintId(sprintId);
@@ -74,7 +74,7 @@ public class KpiCalculatorService {
         Optional<Kpi> existing = kpiRepository.findByNombreAndProyectoIdAndSprintIdIsNull(nombre, proyectoId);
         Kpi kpi = existing.orElseGet(() -> {
             Kpi k = new Kpi();
-            k.setId(System.currentTimeMillis() + nombre.hashCode() + proyectoId);
+            k.setId(Math.abs(System.currentTimeMillis() % 1_000_000_000L + Math.abs(nombre.hashCode() % 100_000L) + proyectoId));
             k.setNombre(nombre);
             k.setUnidad(unidad);
             k.setProyectoId(proyectoId);

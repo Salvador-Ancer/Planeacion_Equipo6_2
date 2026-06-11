@@ -66,7 +66,7 @@ export default function Analitica() {
       .finally(() => setLoading(false))
   }, [refreshKey])
 
-  const allDevs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner'].includes(u.rol))
+  const allDevs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner', 'Admin'].includes(u.rol))
   const getName = (u) => (u.fullName || u.email || `Dev ${u.id}`).split(' ')[0]
 
   // scope por proyecto
