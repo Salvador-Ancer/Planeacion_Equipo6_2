@@ -1,4 +1,6 @@
 import { createContext, useContext, useState } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import AppRouter from './routes/AppRouter'
 
 export const AuthContext = createContext(null)
@@ -29,6 +31,7 @@ export default function App() {
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <AppRouter />
+      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover />
     </AuthContext.Provider>
   )
 }
