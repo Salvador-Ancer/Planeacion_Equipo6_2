@@ -133,7 +133,9 @@ public class BotActions {
 
         Usuario usuario = usuarioOpt.get();
         List<Tarea> tareas = tareaService.obtenerPorAsignado(usuario.getId()).stream()
-            .filter(t -> t.getBorrado() == null || t.getBorrado() == 0)
+            .filter(t -> (t.getBorrado() == null || t.getBorrado() == 0)
+                && !"Completado".equalsIgnoreCase(t.getEstatus()))
+            .limit(15)
             .collect(Collectors.toList());
 
         if (tareas.isEmpty()) {
