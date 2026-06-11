@@ -3,6 +3,7 @@ package com.springboot.MyTodoList.controller;
 import com.springboot.MyTodoList.config.BotProps;
 import com.springboot.MyTodoList.model.Usuario;
 import com.springboot.MyTodoList.service.DeepSeekService;
+import com.springboot.MyTodoList.service.RagService;
 import com.springboot.MyTodoList.service.KpiService;
 import com.springboot.MyTodoList.service.SprintService;
 import com.springboot.MyTodoList.service.TareaService;
@@ -42,6 +43,7 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 	private final UsuarioService usuarioService;
 	private final TelegramClient telegramClient;
 	private final BotProps botProps;
+	private final RagService ragService;
 
 	@Value("${telegram.bot.token}")
 	private String telegramBotToken;
@@ -58,7 +60,7 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 	public ToDoItemBotController(BotProps bp, ToDoItemService tsvc, DeepSeekService ds,
 	                              TareaService tareas, SprintService sprints,
 	                              KpiService kpis, UsuarioService usuarios,
-	                              TelegramClient telegramClient) {
+	                              TelegramClient telegramClient, RagService ragService) {
 		this.botProps = bp;
 		this.telegramClient = telegramClient;
 		this.toDoItemService = tsvc;
@@ -67,6 +69,7 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 		this.sprintService = sprints;
 		this.kpiService = kpis;
 		this.usuarioService = usuarios;
+		this.ragService = ragService;
 	}
 
 	@Override
@@ -132,7 +135,7 @@ public class ToDoItemBotController implements SpringLongPollingBot, LongPollingS
 
 		BotActions actions = new BotActions(
 			telegramClient, toDoItemService, deepSeekService,
-			tareaService, sprintService, kpiService, usuarioService
+			tareaService, sprintService, kpiService, usuarioService, ragService
 		);
 		actions.setRequestText(messageText);
 		actions.setChatId(chatId);

@@ -8,6 +8,7 @@ import com.springboot.MyTodoList.model.Tarea;
 import com.springboot.MyTodoList.model.ToDoItem;
 import com.springboot.MyTodoList.model.Usuario;
 import com.springboot.MyTodoList.service.DeepSeekService;
+import com.springboot.MyTodoList.service.RagService;
 import com.springboot.MyTodoList.service.KpiService;
 import com.springboot.MyTodoList.service.SprintService;
 import com.springboot.MyTodoList.service.TareaService;
@@ -43,10 +44,11 @@ public class BotActions {
     SprintService sprintService;
     KpiService kpiService;
     UsuarioService usuarioService;
+    RagService ragService;
 
     public BotActions(TelegramClient tc, ToDoItemService ts, DeepSeekService ds,
                       TareaService tareas, SprintService sprints,
-                      KpiService kpis, UsuarioService usuarios) {
+                      KpiService kpis, UsuarioService usuarios, RagService rag) {
         telegramClient = tc;
         todoService = ts;
         deepSeekService = ds;
@@ -54,6 +56,7 @@ public class BotActions {
         sprintService = sprints;
         kpiService = kpis;
         usuarioService = usuarios;
+        ragService = rag;
         exit = false;
     }
 
@@ -431,99 +434,72 @@ public class BotActions {
     }
 
     public void fnAnalizar() {
-        if (!(requestText.equals(BotCommands.ANALIZAR.getCommand())
-                || requestText.equals(BotLabels.ANALIZAR_IA.getLabel())) || exit)
+        boolean esComando = requestText.equals(BotCommands.ANALIZAR.getCommand())
+            || requestText.equals(BotLabels.ANALIZAR_IA.getLabel());
+
+        UserSession session = sessions.computeIfAbsent(chatId, k -> new UserSession());
+        if (!esComando && session.getState() != UserSession.State.ESPERANDO_PREGUNTA_RAG) return;
+        if (exit) return;
+
+        Optional<Usuario> usuarioOpt = resolveUsuario();
+        if (usuarioOpt.isEmpty()) {
+            BotHelper.sendMessageToTelegram(chatId, BotMessages.USUARIO_NO_REGISTRADO.getMessage(), telegramClient);
+            session.reset();
+            exit = true;
             return;
+        }
 
-        try {
-            List<Sprint> sprintsActivos = sprintService.obtenerPorEstatus("ACTIVO");
-            StringBuilder sb = new StringBuilder("Analisis del Equipo\n\n");
+        // Paso 1: pedir la pregunta
+        if (esComando && session.getState() == UserSession.State.NONE) {
+            Usuario usuario = usuarioOpt.get();
+            List<Tarea> tareas = tareaService.obtenerPorAsignado(usuario.getId()).stream()
+                .filter(t -> t.getBorrado() == null || t.getBorrado() == 0)
+                .collect(Collectors.toList());
 
-            if (sprintsActivos.isEmpty()) {
-                sb.append("No hay sprint activo en este momento.\n\n");
-                List<Tarea> todas = tareaService.obtenerActivas();
-                long bloqueadas = todas.stream()
-                    .filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
-                sb.append("Tareas activas: ").append(todas.size()).append("\n");
-                sb.append("Bloqueadas: ").append(bloqueadas).append("\n");
-                sb.append("\nRecomendacion: Inicia un nuevo sprint para organizar el trabajo pendiente.");
-                BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
+            Long proyectoId = null;
+            if (!tareas.isEmpty() && tareas.get(0).getProyectoId() != null) {
+                proyectoId = tareas.get(0).getProyectoId();
+            }
+            if (proyectoId == null) {
+                BotHelper.sendMessageToTelegram(chatId,
+                    "No tienes tareas asociadas a un proyecto. Contacta a tu administrador.",
+                    telegramClient);
                 exit = true;
                 return;
             }
 
-            Sprint sprint = sprintsActivos.get(0);
-            List<Tarea> tareas = tareaService.obtenerPorSprint(sprint.getId()).stream()
-                .filter(t -> t.getBorrado() == null || t.getBorrado() == 0)
-                .collect(Collectors.toList());
-
-            long completadas = tareas.stream().filter(t -> "Completado".equalsIgnoreCase(t.getEstatus())).count();
-            long enProgreso = tareas.stream().filter(t -> "En Progreso".equalsIgnoreCase(t.getEstatus())).count();
-            long pendientes = tareas.stream().filter(t -> "Backlog".equalsIgnoreCase(t.getEstatus())).count();
-            long bloqueadas = tareas.stream().filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus())).count();
-            int total = tareas.size();
-
-            double horasEst = tareas.stream()
-                .mapToDouble(t -> t.getHorasEstimadas() != null ? t.getHorasEstimadas() : 0).sum();
-            double horasReal = tareas.stream()
-                .mapToDouble(t -> t.getHorasReales() != null ? t.getHorasReales() : 0).sum();
-
-            double pctCompletado = total > 0 ? (completadas * 100.0 / total) : 0;
-
-            // 1) Resumen ejecutivo
-            sb.append("1. Resumen ejecutivo\n");
-            sb.append("El sprint \"").append(sprint.getNombre()).append("\" tiene ");
-            sb.append(total).append(" tareas: ").append(completadas).append(" completadas (")
-              .append(String.format("%.0f", pctCompletado)).append("%), ")
-              .append(enProgreso).append(" en progreso y ").append(pendientes).append(" pendientes. ");
-
-            if (horasEst > 0) {
-                double eficiencia = horasReal / horasEst * 100;
-                sb.append("Se han usado ").append(String.format("%.1f", horasReal))
-                  .append("h de ").append(String.format("%.1f", horasEst))
-                  .append("h estimadas (").append(String.format("%.0f", eficiencia)).append("%).\n\n");
-            } else {
-                sb.append("\n\n");
-            }
-
-            // 2) Riesgos
-            sb.append("2. Riesgos detectados\n");
-            if (bloqueadas > 0) {
-                sb.append("- ").append(bloqueadas).append(" tarea(s) bloqueada(s) que pueden retrasar el sprint.\n");
-                tareas.stream().filter(t -> "Bloqueado".equalsIgnoreCase(t.getEstatus()))
-                    .forEach(t -> sb.append("  * ").append(t.getNombre()).append("\n"));
-            }
-            if (pctCompletado < 30 && total > 3) {
-                sb.append("- Avance bajo (").append(String.format("%.0f", pctCompletado))
-                  .append("% completado). Riesgo de no terminar el sprint a tiempo.\n");
-            }
-            if (horasEst > 0 && horasReal > horasEst * 1.2) {
-                sb.append("- Las horas reales superan las estimadas en mas del 20%. Revisar estimaciones.\n");
-            }
-            if (bloqueadas == 0 && pctCompletado >= 30) {
-                sb.append("- Sin riesgos criticos identificados en este momento.\n");
-            }
-            sb.append("\n");
-
-            // 3) Recomendaciones
-            sb.append("3. Recomendaciones\n");
-            if (bloqueadas > 0)
-                sb.append("- Resolver los bloqueos de forma prioritaria en la proxima reunion del equipo.\n");
-            if (pendientes > enProgreso * 2)
-                sb.append("- Hay muchas tareas en Backlog. Considera mover las mas prioritarias a En Progreso.\n");
-            if (horasEst > 0 && horasReal < horasEst * 0.5 && completadas < total)
-                sb.append("- El equipo va adelante en tiempo. Aprovecha para revisar la calidad del entregable.\n");
-            sb.append("- Mantener dailys cortos para detectar bloqueos rapidamente.\n");
-            if (completadas == total && total > 0)
-                sb.append("- Sprint completado al 100%. Excelente trabajo del equipo!\n");
-
-            BotHelper.sendMessageToTelegram(chatId, sb.toString(), telegramClient);
-        } catch (Exception e) {
-            logger.error("Error en fnAnalizar: {}", e.getMessage(), e);
-            BotHelper.sendMessageToTelegram(chatId, "Error al generar el analisis. Intenta de nuevo.", telegramClient);
+            session.setProyectoIdRag(proyectoId);
+            session.setState(UserSession.State.ESPERANDO_PREGUNTA_RAG);
+            BotHelper.sendMessageToTelegram(chatId,
+                "Analisis con IA\n\n¿Qué deseas consultar sobre tu proyecto?\n\n"
+                + "Ejemplos:\n"
+                + "- ¿Cuáles tareas están bloqueadas?\n"
+                + "- ¿Cómo va el avance del sprint?\n"
+                + "- ¿Quién tiene más carga de trabajo?",
+                telegramClient);
+            exit = true;
+            return;
         }
 
-        exit = true;
+        // Paso 2: recibir pregunta y llamar al RAG
+        if (session.getState() == UserSession.State.ESPERANDO_PREGUNTA_RAG) {
+            String pregunta = requestText.trim();
+            Long proyectoId = session.getProyectoIdRag();
+            session.reset();
+
+            BotHelper.sendMessageToTelegram(chatId, "Consultando...", telegramClient);
+
+            try {
+                String respuesta = ragService.ask(proyectoId, pregunta);
+                BotHelper.sendMessageToTelegram(chatId, respuesta, telegramClient);
+            } catch (Exception e) {
+                logger.error("Error en RAG: {}", e.getMessage(), e);
+                BotHelper.sendMessageToTelegram(chatId,
+                    "Hubo un error al consultar la IA. Intenta de nuevo más tarde.",
+                    telegramClient);
+            }
+            exit = true;
+        }
     }
 
     // --- Agregar tarea ---

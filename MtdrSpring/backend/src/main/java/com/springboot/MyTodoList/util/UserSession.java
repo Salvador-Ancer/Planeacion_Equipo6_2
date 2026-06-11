@@ -11,7 +11,9 @@ public class UserSession {
         ESPERANDO_DEVELOPER,
         // Completar tarea
         ESPERANDO_ID_COMPLETAR,
-        ESPERANDO_HORAS_REALES
+        ESPERANDO_HORAS_REALES,
+        // RAG
+        ESPERANDO_PREGUNTA_RAG
     }
 
     private State state = State.NONE;
@@ -20,6 +22,7 @@ public class UserSession {
     private String prioridad;
     private Long tareaIdACompletar;
     private Long developerIdAAsignar;
+    private Long proyectoIdRag;
 
     public State getState() { return state; }
     public void setState(State state) { this.state = state; }
@@ -39,6 +42,9 @@ public class UserSession {
     public Long getDeveloperIdAAsignar() { return developerIdAAsignar; }
     public void setDeveloperIdAAsignar(Long developerIdAAsignar) { this.developerIdAAsignar = developerIdAAsignar; }
 
+    public Long getProyectoIdRag() { return proyectoIdRag; }
+    public void setProyectoIdRag(Long proyectoIdRag) { this.proyectoIdRag = proyectoIdRag; }
+
     public void reset() {
         this.state = State.NONE;
         this.nombreTarea = null;
@@ -46,5 +52,6 @@ public class UserSession {
         this.prioridad = null;
         this.tareaIdACompletar = null;
         this.developerIdAAsignar = null;
+        this.proyectoIdRag = null;
     }
 }
