@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import SprintOverview from '../components/dashboard/SprintOverview'
 import KPIBox from '../components/dashboard/KPIBox'
 import Card from '../components/common/Card'
 import { tareasApi } from '../services/api'
 
-// estatus values from DB: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
+// estatus 
 const STATUS_BADGE = {
   'Completado':  { bg: '#F0F2EC', color: '#7A8C5A', label: 'Completado' },
   'En Progreso': { bg: '#F5ECEB', color: '#A85550', label: 'En progreso' },
@@ -35,11 +34,6 @@ export default function Dashboard() {
 
       {/* Left / Main column */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-        {/* Sprint overview */}
-        <div style={{ animation: 'fadeIn .3s ease .05s both' }}>
-          <SprintOverview />
-        </div>
 
         {/* KPI grid */}
         <div style={{ animation: 'fadeIn .3s ease .1s both' }}>
@@ -88,32 +82,35 @@ export default function Dashboard() {
         {/* Recent tasks table */}
         <div style={{ animation: 'fadeIn .3s ease .15s both' }}>
           <Card>
-            <Card.Header
-              title="Tareas recientes"
-              subtitle="Actividad del sprint actual"
-              action={
-                <button onClick={() => navigate('/tareas')} style={{
-                  fontSize: 12, color: 'var(--accent)', fontWeight: 500,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                }}>
-                  Ver todas
-                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              }
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 120px 80px',
-                padding: '6px 10px',
-                fontSize: 10.5, fontWeight: 600, color: 'var(--muted)',
-                textTransform: 'uppercase', letterSpacing: '.06em',
-                borderBottom: '1px solid var(--border-light)',
-              }}>
-                <span>Tarea</span><span>Estado</span><span>Prioridad</span>
+
+            {/* Card header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Tareas recientes</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Actividad del sprint actual</div>
               </div>
+              <button
+                onClick={() => navigate('/tareas')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--navy)', fontWeight: 500, padding: '2px 0' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--oracle-red)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--navy)'}
+              >
+                Ver todas →
+              </button>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0 0' }} />
+
+            {/* Column headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px', padding: '8px 10px 6px' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Tarea</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Estado</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Prioridad</span>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', marginBottom: 4 }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
 
               {loading && (
                 <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
@@ -165,7 +162,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Right / Chat column */}
+      
     </div>
   )
 }

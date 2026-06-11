@@ -10,13 +10,17 @@ import java.util.Optional;
 public class KpiService {
 
     private final KpiRepository kpiRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public KpiService(KpiRepository kpiRepository) {
+    public KpiService(KpiRepository kpiRepository, EmbeddingSyncService embeddingSyncService) {
         this.kpiRepository = kpiRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public Kpi guardar(Kpi kpi) {
-        return kpiRepository.save(kpi);
+        Kpi guardado = kpiRepository.save(kpi);
+        embeddingSyncService.syncKpi(guardado.getId());
+        return guardado;
     }
 
     public List<Kpi> obtenerTodos() {

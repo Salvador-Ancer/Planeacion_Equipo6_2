@@ -18,21 +18,21 @@ const PRIORITY_CONFIG = {
 
 const MENU_EVENT = 'taskCardMenuOpen'
 
-export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
+export default function TaskCard({ task, onUpdate, onDelete, onEdit, onComplete }) {
   const [menuPos,  setMenuPos]  = useState(null)
   const [updating, setUpdating] = useState(false)
   const btnRef = useRef(null)
 
   const closeMenu = () => setMenuPos(null)
 
-  // Close when another card opens its menu
+  // cierra cuando otra card abre su menu
   useEffect(() => {
     const handler = (e) => { if (e.detail !== task.id) closeMenu() }
     window.addEventListener(MENU_EVENT, handler)
     return () => window.removeEventListener(MENU_EVENT, handler)
   }, [task.id])
 
-  // Close on outside click
+  // cerrar con click externo
   useEffect(() => {
     if (!menuPos) return
     const handler = (e) => {
@@ -56,6 +56,10 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
 
   const handleStatusChange = async (newEstatus) => {
     closeMenu()
+    if (newEstatus === 'Completado' && onComplete) {
+      onComplete(task)
+      return
+    }
     setUpdating(true)
     try {
       const updated = await tareasApi.update(task.id, { ...task, estatus: newEstatus })
@@ -137,21 +141,23 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
         }}>
           {updating ? '…' : status.label}
         </span>
-        <button
-          ref={btnRef}
-          onClick={toggleMenu}
-          style={{
-            color: '#9CA3AF', padding: '2px 4px', borderRadius: 4,
-            cursor: 'pointer', background: 'none', border: 'none',
-            display: 'flex', alignItems: 'center',
-          }}
-        >
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-            <circle cx="10" cy="4" r="1.5" />
-            <circle cx="10" cy="10" r="1.5" />
-            <circle cx="10" cy="16" r="1.5" />
-          </svg>
-        </button>
+        {!(onComplete && task.estatus === 'Completado') && (
+          <button
+            ref={btnRef}
+            onClick={toggleMenu}
+            style={{
+              color: '#9CA3AF', padding: '2px 4px', borderRadius: 4,
+              cursor: 'pointer', background: 'none', border: 'none',
+              display: 'flex', alignItems: 'center',
+            }}
+          >
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="4" r="1.5" />
+              <circle cx="10" cy="10" r="1.5" />
+              <circle cx="10" cy="16" r="1.5" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Title */}

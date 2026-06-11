@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import TaskCard from '../components/tasks/TaskCard'
 import Button from '../components/common/Button'
 import { tareasApi } from '../services/api'
@@ -6,18 +7,71 @@ import { useAuth } from '../App'
 
 const STATUSES = ['Backlog', 'En Progreso', 'Completado', 'Bloqueado']
 
-function StatusModal({ task, onSave, onClose }) {
-  const [estatus, setEstatus] = useState(task.estatus)
+function HorasModal({ task, onSave, onClose }) {
+  const [horas,   setHoras]   = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      const updated = await tareasApi.update(task.id, { ...task, estatus })
+      const updated = await tareasApi.update(task.id, {
+        ...task,
+        estatus: 'Completado',
+        horasReales: Number(horas) || 0,
+      })
       onSave(updated)
-    } catch {
-      // keep modal open on error
-    } finally {
+    } catch {} finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 360, boxShadow: 'var(--shadow-lg)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Tarea completada</h3>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
+        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>
+          Horas reales trabajadas
+        </label>
+        <input
+          type="number"
+          min="0.5"
+          step="0.5"
+          value={horas}
+          onChange={e => setHoras(e.target.value)}
+          placeholder="Ej: 4.5"
+          autoFocus
+          style={{ width: '100%', height: 40, padding: '0 12px', border: `1px solid ${horas && Number(horas) > 0 ? 'var(--border)' : horas !== '' ? '#A85550' : 'var(--border)'}`, borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 6 }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'}
+        />
+        {horas !== '' && Number(horas) <= 0 && (
+          <p style={{ fontSize: 11, color: '#A85550', margin: '0 0 16px' }}>Ingresa un número mayor a 0</p>
+        )}
+        {(horas === '' || Number(horas) > 0) && <div style={{ marginBottom: 16 }} />}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" loading={loading} onClick={handleSave} disabled={!horas || Number(horas) <= 0}>Guardar</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuickStatusModal({ task, onComplete, onSave, onClose }) {
+  const [loading, setLoading] = useState(false)
+
+  const handleSelect = async (newEstatus) => {
+    if (newEstatus === task.estatus) { onClose(); return }
+    if (newEstatus === 'Completado') { onClose(); onComplete(task); return }
+    setLoading(true)
+    try {
+      const updated = await tareasApi.update(task.id, { ...task, estatus: newEstatus })
+      onSave(updated)
+    } catch {} finally {
       setLoading(false)
     }
   }
@@ -28,23 +82,21 @@ function StatusModal({ task, onSave, onClose }) {
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div style={{ background: 'white', borderRadius: 16, padding: 28, width: 340, boxShadow: 'var(--shadow-lg)' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Actualizar estado</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: '0 0 4px' }}>Cambiar estado</h3>
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{task.nombre}</p>
-
-        <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
-          Estado
-        </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
           {STATUSES.map(s => (
             <button
               key={s}
-              onClick={() => setEstatus(s)}
+              disabled={loading}
+              onClick={() => handleSelect(s)}
               style={{
                 padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', textAlign: 'left',
-                border: `2px solid ${estatus === s ? 'var(--accent)' : 'var(--border)'}`,
-                background: estatus === s ? 'var(--accent-light)' : 'white',
-                color: estatus === s ? 'var(--accent)' : 'var(--navy)',
+                border: `2px solid ${s === task.estatus ? 'var(--accent)' : 'var(--border)'}`,
+                background: s === task.estatus ? 'var(--accent-light)' : 'white',
+                color: s === task.estatus ? 'var(--accent)' : 'var(--navy)',
+                opacity: loading ? 0.6 : 1,
                 transition: 'all .15s',
               }}
             >
@@ -52,17 +104,15 @@ function StatusModal({ task, onSave, onClose }) {
             </button>
           ))}
         </div>
-
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" loading={loading} onClick={handleSave}>Guardar</Button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="outline" onClick={onClose}>Cerrar</Button>
         </div>
       </div>
     </div>
   )
 }
 
-// DB values: 'Backlog' | 'En Progreso' | 'Completado' | 'Bloqueado'
+// valores de bd
 const COLUMNS = [
   { key: 'Backlog',     label: 'Backlog',     color: 'var(--muted)',      dot: '#94A3B8' },
   { key: 'En Progreso', label: 'En progreso', color: 'var(--accent)',     dot: 'var(--accent)' },
@@ -75,7 +125,8 @@ export default function MisTareas() {
   const [tasks, setTasks]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [view, setView]         = useState('kanban')
-  const [editTask, setEditTask] = useState(null)
+  const [completingTask, setCompletingTask] = useState(null)
+  const [statusTask, setStatusTask]         = useState(null)
   const [search, setSearch]     = useState('')
 
   useEffect(() => {
@@ -86,14 +137,26 @@ export default function MisTareas() {
       .finally(() => setLoading(false))
   }, [user?.userId])
 
-  const handleUpdate = (updated) => {
-    tareasApi.update(updated.id, updated).catch(() => {})
-    setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+  const handleUpdate = async (updated) => {
+    try {
+      await tareasApi.update(updated.id, updated)
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+      toast.success('Tarea actualizada')
+    } catch {
+      toast.error('Error al actualizar la tarea')
+    }
   }
 
-const handleStatusSave = (saved) => {
+  const handleCompleteSave = (saved) => {
     setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
-    setEditTask(null)
+    setCompletingTask(null)
+    toast.success('¡Tarea completada!')
+  }
+
+  const handleStatusSave = (saved) => {
+    setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
+    setStatusTask(null)
+    toast.success('Estado actualizado')
   }
 
   const filtered = search
@@ -183,7 +246,7 @@ const handleStatusSave = (saved) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {byStatus(col.key).map((task, i) => (
                   <div key={task.id} style={{ animation: `fadeIn .2s ease ${i * 0.05}s both` }}>
-                    <TaskCard task={task} onUpdate={handleUpdate} />
+                    <TaskCard task={task} onUpdate={handleUpdate} onComplete={setCompletingTask} />
                   </div>
                 ))}
                 {byStatus(col.key).length === 0 && (
@@ -216,9 +279,11 @@ const handleStatusSave = (saved) => {
                     {task.prioridad || '—'}
                   </div>
                   <div style={{ padding: '10px 10px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 4, animation: `fadeIn .2s ease ${i*0.04}s both` }}>
-                    <Button size="sm" variant="ghost" onClick={() => setEditTask(task)}>
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </Button>
+                    {task.estatus !== 'Completado' && (
+                      <Button size="sm" variant="ghost" onClick={() => setStatusTask(task)}>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </Button>
+                    )}
                   </div>
                 </div>
               )
@@ -232,8 +297,11 @@ const handleStatusSave = (saved) => {
         </div>
       )}
 
-      {editTask && (
-        <StatusModal task={editTask} onSave={handleStatusSave} onClose={() => setEditTask(null)} />
+      {completingTask && (
+        <HorasModal task={completingTask} onSave={handleCompleteSave} onClose={() => setCompletingTask(null)} />
+      )}
+      {statusTask && (
+        <QuickStatusModal task={statusTask} onComplete={setCompletingTask} onSave={handleStatusSave} onClose={() => setStatusTask(null)} />
       )}
     </div>
   )
