@@ -80,7 +80,7 @@ public class TareaController {
             return ResponseEntity.badRequest().body("El campo 'nombre' es obligatorio");
         }
         if (tarea.getId() == null) {
-            tarea.setId(System.currentTimeMillis() * 1_000_000L + (ID_COUNTER.incrementAndGet() % 1_000_000L));
+            tarea.setId(System.currentTimeMillis() % 1_000_000_000L + (ID_COUNTER.incrementAndGet() % 10_000L));
         }
         if (tarea.getBorrado() == null) {
             tarea.setBorrado(0);

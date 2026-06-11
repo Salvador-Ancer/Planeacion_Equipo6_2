@@ -163,7 +163,7 @@
 				<configuration>
 					<mainClass>com.springboot.MyTodoList.MyTodoListApplication</mainClass>
 					<fork>true</fork>
-					<jvmArguments>-Doracle.net.tns_admin=/Users/perlareyes/GitHub/Planeacion_Equipo6_2/MtdrSpring/backend/wallet</jvmArguments>
+					<jvmArguments>-Doracle.net.tns_admin=/Users/silvanna/GitHub/Planeacion_Equipo6_2/MtdrSpring/backend/wallet</jvmArguments>
 				</configuration>
 				<executions>
 					<execution>

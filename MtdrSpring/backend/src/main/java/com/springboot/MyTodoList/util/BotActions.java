@@ -674,9 +674,7 @@ public class BotActions {
         if (!sprintsActivos.isEmpty())
             tarea.setSprintId(sprintsActivos.get(0).getId());
 
-        List<Tarea> todas = tareaService.obtenerTodas();
-        long maxId = todas.stream().mapToLong(t -> t.getId() != null ? t.getId() : 0).max().orElse(0);
-        tarea.setId(maxId + 1);
+        tarea.setId(System.currentTimeMillis() % 1_000_000_000L);
 
         tareaService.guardar(tarea);
 
