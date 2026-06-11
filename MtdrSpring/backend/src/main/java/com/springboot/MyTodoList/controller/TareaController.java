@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/tareas")
@@ -18,6 +19,8 @@ public class TareaController {
     private final TareaService          tareaService;
     private final UsuarioService        usuarioService;
     private final KpiCalculatorService  kpiCalculatorService;
+
+    private static final AtomicLong ID_COUNTER = new AtomicLong(0);
 
     public TareaController(TareaService tareaService, UsuarioService usuarioService,
                            KpiCalculatorService kpiCalculatorService) {
@@ -77,7 +80,7 @@ public class TareaController {
             return ResponseEntity.badRequest().body("El campo 'nombre' es obligatorio");
         }
         if (tarea.getId() == null) {
-            tarea.setId(System.currentTimeMillis());
+            tarea.setId(System.currentTimeMillis() * 1_000_000L + (ID_COUNTER.incrementAndGet() % 1_000_000L));
         }
         if (tarea.getBorrado() == null) {
             tarea.setBorrado(0);
