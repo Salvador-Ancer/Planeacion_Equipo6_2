@@ -34,6 +34,9 @@ public class SprintServiceTest {
     @Mock
     private TareaRepository tareaRepository;
 
+    @Mock
+    private EmbeddingSyncService embeddingSyncService;
+
     @InjectMocks
     private SprintService sprintService;
 
