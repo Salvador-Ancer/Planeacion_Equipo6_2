@@ -443,12 +443,32 @@ Run (non-GUI):
           <hashTree/>
         </hashTree>
 
-        <!-- W02: GET /tareas (extract sprintId and proyectoId for POST payload) -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="W02 GET /tareas (extract IDs)" enabled="true">
+        <!-- W02a: GET /proyectos (extract proyectoId for POST payload) -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="W02a GET /proyectos (extract proyectoId)" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="HTTPSampler.path">/tareas</stringProp>
+          <stringProp name="HTTPSampler.path">/proyectos</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPostProcessor guiclass="JSONExtractorGui" testclass="JSONPostProcessor" testname="Extract proyectoId" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">write_proyectoId</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$[0].id</stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
+          </JSONPostProcessor>
+          <hashTree/>
+        </hashTree>
+
+        <!-- W02b: GET /sprints/activos (extract sprintId for POST payload) -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="W02b GET /sprints/activos (extract sprintId)" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/sprints/activos</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -456,15 +476,8 @@ Run (non-GUI):
         <hashTree>
           <JSONPostProcessor guiclass="JSONExtractorGui" testclass="JSONPostProcessor" testname="Extract sprintId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">write_sprintId</stringProp>
-            <stringProp name="JSONPostProcessor.jsonPathExprs">$[0].sprintId</stringProp>
-            <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
-            <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
-          </JSONPostProcessor>
-          <hashTree/>
-          <JSONPostProcessor guiclass="JSONExtractorGui" testclass="JSONPostProcessor" testname="Extract proyectoId" enabled="true">
-            <stringProp name="JSONPostProcessor.referenceNames">write_proyectoId</stringProp>
-            <stringProp name="JSONPostProcessor.jsonPathExprs">$[0].proyectoId</stringProp>
-            <stringProp name="JSONPostProcessor.defaultValues">1</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$[0].id</stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">13</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
           </JSONPostProcessor>
           <hashTree/>

@@ -9,19 +9,19 @@
 -- 1) SPRINTS 0-3
 -- ---------------------------------------------------------------
 INSERT INTO ADMIN.SPRINTS (SPRINT_ID, NOMBRE, FECHA_INICIO, FECHA_FIN, ESTATUS, OBJETIVO, PROYECTO_ID)
-SELECT 10, 'Sprint 0 - Fundacion e infraestructura', DATE '2026-02-18', DATE '2026-03-04', 'Completado',
+SELECT 10, 'Sprint 0 - Fundacion e infraestructura', DATE '2026-02-18', DATE '2026-03-04', 'Cerrado',
        'Configurar repositorios, infraestructura en OCI, base de datos y proyectos base de backend, frontend y bot de Telegram.', 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.SPRINTS WHERE SPRINT_ID = 10);
 COMMIT;
 
 INSERT INTO ADMIN.SPRINTS (SPRINT_ID, NOMBRE, FECHA_INICIO, FECHA_FIN, ESTATUS, OBJETIVO, PROYECTO_ID)
-SELECT 11, 'Sprint 1 - Autenticacion y CRUD base', DATE '2026-03-05', DATE '2026-03-25', 'Completado',
+SELECT 11, 'Sprint 1 - Autenticacion y CRUD base', DATE '2026-03-05', DATE '2026-03-25', 'Cerrado',
        'Implementar autenticacion, CRUD de proyectos/sprints/tareas y las vistas principales del portal y del bot.', 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.SPRINTS WHERE SPRINT_ID = 11);
 COMMIT;
 
 INSERT INTO ADMIN.SPRINTS (SPRINT_ID, NOMBRE, FECHA_INICIO, FECHA_FIN, ESTATUS, OBJETIVO, PROYECTO_ID)
-SELECT 12, 'Sprint 2 - KPIs, historial y reportes', DATE '2026-03-26', DATE '2026-04-22', 'Completado',
+SELECT 12, 'Sprint 2 - KPIs, historial y reportes', DATE '2026-03-26', DATE '2026-04-22', 'Cerrado',
        'Agregar el modulo de KPIs, historial de cambios, dashboards y reportes del proyecto.', 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.SPRINTS WHERE SPRINT_ID = 12);
 COMMIT;
@@ -286,17 +286,17 @@ SELECT 1048, 'Configurar pruebas de carga con JMeter (normal, pico, estres)', 'B
        'Configurar pruebas de carga con JMeter (normal, pico, estres).', 5, 4, 3, 0, 13, 1, 4, 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREAS WHERE TAREA_ID = 1048);
 INSERT INTO ADMIN.TAREAS (TAREA_ID, NOMBRE, PRIORIDAD, ESTATUS, FECHA_CREACION, FECHA_VENCIMIENTO, DESCRIPCION, HORAS_ESTIMADAS, HORAS_REALES, STORY_POINTS, BORRADO, SPRINT_ID, PROYECTO_ID, ASIGNADO_A, CREADO_POR)
-SELECT 1049, 'Optimizar pool de conexiones para alta concurrencia', 'Alta', 'Pendiente',
+SELECT 1049, 'Optimizar pool de conexiones para alta concurrencia', 'Alta', 'Backlog',
        DATE '2026-05-26', DATE '2026-06-02',
        'Optimizar pool de conexiones para alta concurrencia.', 6, 0, 4, 0, 13, 1, 2, 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREAS WHERE TAREA_ID = 1049);
 INSERT INTO ADMIN.TAREAS (TAREA_ID, NOMBRE, PRIORIDAD, ESTATUS, FECHA_CREACION, FECHA_VENCIMIENTO, DESCRIPCION, HORAS_ESTIMADAS, HORAS_REALES, STORY_POINTS, BORRADO, SPRINT_ID, PROYECTO_ID, ASIGNADO_A, CREADO_POR)
-SELECT 1050, 'Revision de seguridad y manejo de credenciales sensibles', 'Media', 'Pendiente',
+SELECT 1050, 'Revision de seguridad y manejo de credenciales sensibles', 'Media', 'Backlog',
        DATE '2026-05-29', DATE '2026-06-01',
        'Revision de seguridad y manejo de credenciales sensibles.', 7, 0, 5, 0, 13, 1, 3, 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREAS WHERE TAREA_ID = 1050);
 INSERT INTO ADMIN.TAREAS (TAREA_ID, NOMBRE, PRIORIDAD, ESTATUS, FECHA_CREACION, FECHA_VENCIMIENTO, DESCRIPCION, HORAS_ESTIMADAS, HORAS_REALES, STORY_POINTS, BORRADO, SPRINT_ID, PROYECTO_ID, ASIGNADO_A, CREADO_POR)
-SELECT 1051, 'Configurar monitoreo y logging centralizado en OCI', 'Baja', 'Pendiente',
+SELECT 1051, 'Configurar monitoreo y logging centralizado en OCI', 'Baja', 'Backlog',
        DATE '2026-06-02', DATE '2026-06-06',
        'Configurar monitoreo y logging centralizado en OCI.', 8, 0, 6, 0, 13, 1, 4, 1 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREAS WHERE TAREA_ID = 1051);
