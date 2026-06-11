@@ -10,13 +10,17 @@ import java.util.Optional;
 public class ProyectoService {
 
     private final ProyectoRepository proyectoRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public ProyectoService(ProyectoRepository proyectoRepository) {
+    public ProyectoService(ProyectoRepository proyectoRepository, EmbeddingSyncService embeddingSyncService) {
         this.proyectoRepository = proyectoRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public Proyecto guardar(Proyecto proyecto) {
-        return proyectoRepository.save(proyecto);
+        Proyecto guardado = proyectoRepository.save(proyecto);
+        embeddingSyncService.syncProyecto(guardado.getId());
+        return guardado;
     }
 
     public List<Proyecto> obtenerTodos() {

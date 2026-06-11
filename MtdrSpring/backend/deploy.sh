@@ -38,6 +38,30 @@ if [ -z "$UI_USERNAME" ]; then
     exit 1
 fi
 
+if [ -z "$DB_PASSWORD" ]; then
+    export DB_PASSWORD=$(state_get DB_PASSWORD)
+fi
+if [ -z "$DB_PASSWORD" ]; then
+    echo "Error: DB_PASSWORD env variable needs to be set!"
+    exit 1
+fi
+
+if [ -z "$GROQ_API_KEY" ]; then
+    export GROQ_API_KEY=$(state_get GROQ_API_KEY)
+fi
+if [ -z "$GROQ_API_KEY" ]; then
+    echo "Error: GROQ_API_KEY env variable needs to be set!"
+    exit 1
+fi
+
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+    export TELEGRAM_BOT_TOKEN=$(state_get TELEGRAM_BOT_TOKEN)
+fi
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+    echo "Error: TELEGRAM_BOT_TOKEN env variable needs to be set!"
+    exit 1
+fi
+
 echo "Creating springboot deplyoment and service"
 export CURRENTTIME=$( date '+%F_%H:%M:%S' )
 echo CURRENTTIME is $CURRENTTIME  ...this will be appended to generated deployment yaml
@@ -52,6 +76,14 @@ mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURR
 sed -e "s|%OCI_REGION%|${OCI_REGION}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
 mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
 sed -e "s|%UI_USERNAME%|${UI_USERNAME}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
+mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
+sed -e "s|%DB_PASSWORD%|${DB_PASSWORD}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
+mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
+sed -e "s|%GROQ_API_KEY%|${GROQ_API_KEY}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
+mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
+sed -e "s|%TELEGRAM_BOT_TOKEN%|${TELEGRAM_BOT_TOKEN}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
+mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
+sed -e "s|%DEEPSEEK_API_KEY%|${DEEPSEEK_API_KEY}|g" todolistapp-springboot-${CURRENTTIME}.yaml > /tmp/todolistapp-springboot-$CURRENTTIME.yaml
 mv -- /tmp/todolistapp-springboot-$CURRENTTIME.yaml todolistapp-springboot-$CURRENTTIME.yaml
 if [ -z "$1" ]; then
     kubectl apply -f $SCRIPT_DIR/todolistapp-springboot-$CURRENTTIME.yaml -n mtdrworkshop

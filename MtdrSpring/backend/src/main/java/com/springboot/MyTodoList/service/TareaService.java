@@ -10,13 +10,17 @@ import java.util.Optional;
 public class TareaService {
 
     private final TareaRepository tareaRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public TareaService(TareaRepository tareaRepository) {
+    public TareaService(TareaRepository tareaRepository, EmbeddingSyncService embeddingSyncService) {
         this.tareaRepository = tareaRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public Tarea guardar(Tarea tarea) {
-        return tareaRepository.save(tarea);
+        Tarea guardada = tareaRepository.save(tarea);
+        embeddingSyncService.syncTarea(guardada.getId());
+        return guardada;
     }
 
     public List<Tarea> obtenerTodas() {

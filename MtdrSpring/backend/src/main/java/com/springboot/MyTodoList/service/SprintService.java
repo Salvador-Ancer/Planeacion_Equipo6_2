@@ -14,14 +14,18 @@ public class SprintService {
 
     private final SprintRepository sprintRepository;
     private final TareaRepository  tareaRepository;
+    private final EmbeddingSyncService embeddingSyncService;
 
-    public SprintService(SprintRepository sprintRepository, TareaRepository tareaRepository) {
+    public SprintService(SprintRepository sprintRepository, TareaRepository tareaRepository, EmbeddingSyncService embeddingSyncService) {
         this.sprintRepository = sprintRepository;
         this.tareaRepository  = tareaRepository;
+        this.embeddingSyncService = embeddingSyncService;
     }
 
     public Sprint guardar(Sprint sprint) {
-        return sprintRepository.save(sprint);
+        Sprint guardado = sprintRepository.save(sprint);
+        embeddingSyncService.syncSprint(guardado.getId());
+        return guardado;
     }
 
     public List<Sprint> obtenerTodos() {

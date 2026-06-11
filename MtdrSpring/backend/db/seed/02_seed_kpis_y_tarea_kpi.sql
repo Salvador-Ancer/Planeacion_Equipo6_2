@@ -1,0 +1,117 @@
+-- =====================================================================
+-- 02_seed_kpis_y_tarea_kpi.sql
+-- KPIs (con valor_actual capturado, ligados a Sprint 3) y la relacion
+-- TAREA_KPI (peso de cada tarea sobre cada KPI).
+--
+-- Requiere haber corrido antes 00_clean_and_seed_demo.sql (PROYECTOS,
+-- USUARIOS) y 01_seed_sprints_tareas.sql (SPRINTS 10-13, TAREAS
+-- 1001-1052), porque KPIS.SPRINT_ID y TAREA_KPI.TAREA_ID son FKs.
+-- =====================================================================
+
+-- ---------------------------------------------------------------
+-- 1) KPIS (todos con valor_actual capturado, ligados a Sprint 3)
+-- ---------------------------------------------------------------
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 1, 'Velocidad del equipo', 'Story points completados en el sprint actual.', 24, 35, 'SP', DATE '2026-06-10', 1, 13, 1, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 1);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 2, 'Cobertura de pruebas unitarias', 'Porcentaje de cobertura de codigo del backend.', 72, 80, '%', DATE '2026-06-10', 1, 13, 2, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 2);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 3, 'Tareas completadas a tiempo', 'Porcentaje de tareas entregadas antes de su fecha de vencimiento.', 78, 90, '%', DATE '2026-06-10', 1, 13, 1, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 3);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 4, 'Bugs detectados en QA', 'Numero de defectos encontrados durante las pruebas del sprint.', 6, 5, 'bugs', DATE '2026-06-10', 1, 13, 4, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 4);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 5, 'Tiempo promedio de resolucion de bugs', 'Horas promedio para cerrar un defecto reportado.', 19, 24, 'horas', DATE '2026-06-10', 1, 13, 4, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 5);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 6, 'Precision de estimacion (horas)', 'Relacion entre horas reales y horas estimadas.', 93, 100, '%', DATE '2026-06-10', 1, 13, 1, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 6);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 7, 'Pruebas automatizadas ejecutadas', 'Numero total de pruebas automatizadas (unitarias + integracion) ejecutadas en CI.', 47, 50, 'tests', DATE '2026-06-10', 1, 13, 3, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 7);
+
+INSERT INTO ADMIN.KPIS (KPI_ID, NOMBRE, DESCRIPCION, VALOR_ACTUAL, VALOR_META, UNIDAD, FECHA_MEDICION, PROYECTO_ID, SPRINT_ID, USER_ID, CREADO_EN, CREADO_POR)
+SELECT 8, 'Tasa de error en pruebas de carga', 'Porcentaje de errores durante la prueba de estres (100 usuarios).', 6.59, 5, '%', DATE '2026-06-10', 1, 13, 5, DATE '2026-05-18', 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.KPIS WHERE KPI_ID = 8);
+
+COMMIT;
+
+-- ---------------------------------------------------------------
+-- 2) Relacion TAREA_KPI (peso de cada tarea sobre cada KPI)
+-- ---------------------------------------------------------------
+
+-- KPI 1: Velocidad del equipo
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1040, 1, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1040 AND KPI_ID = 1);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1044, 1, 0.5 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1044 AND KPI_ID = 1);
+
+-- KPI 2: Cobertura de pruebas unitarias
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1039, 2, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1039 AND KPI_ID = 2);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1043, 2, 0.5 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1043 AND KPI_ID = 2);
+
+-- KPI 3: Tareas completadas a tiempo
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1040, 3, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1040 AND KPI_ID = 3);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1044, 3, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1044 AND KPI_ID = 3);
+
+-- KPI 4: Bugs detectados en QA
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1048, 4, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1048 AND KPI_ID = 4);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1039, 4, 0.5 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1039 AND KPI_ID = 4);
+
+-- KPI 5: Tiempo promedio de resolucion de bugs
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1049, 5, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1049 AND KPI_ID = 5);
+
+-- KPI 6: Precision de estimacion (horas)
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1044, 6, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1044 AND KPI_ID = 6);
+
+-- KPI 7: Pruebas automatizadas ejecutadas
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1048, 7, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1048 AND KPI_ID = 7);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1039, 7, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1039 AND KPI_ID = 7);
+
+-- KPI 8: Tasa de error en pruebas de carga
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1048, 8, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1048 AND KPI_ID = 8);
+INSERT INTO ADMIN.TAREA_KPI (TAREA_ID, KPI_ID, PESO)
+SELECT 1049, 8, 1.0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ADMIN.TAREA_KPI WHERE TAREA_ID = 1049 AND KPI_ID = 8);
+
+COMMIT;
+
+-- ---------------------------------------------------------------
+-- NOTA: despues de correr 00, 01 y 02, ejecutar de nuevo
+-- db/vector/03_backfill_embeddings.sql para que las nuevas filas
+-- (proyecto, sprints, tareas, kpis, usuarios) tengan EMBEDDING
+-- y aparezcan en las busquedas semanticas del asistente RAG.
+-- ---------------------------------------------------------------
