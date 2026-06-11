@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import TaskCard from '../components/tasks/TaskCard'
 import Button from '../components/common/Button'
 import { tareasApi } from '../services/api'
@@ -136,19 +137,26 @@ export default function MisTareas() {
       .finally(() => setLoading(false))
   }, [user?.userId])
 
-  const handleUpdate = (updated) => {
-    tareasApi.update(updated.id, updated).catch(() => {})
-    setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+  const handleUpdate = async (updated) => {
+    try {
+      await tareasApi.update(updated.id, updated)
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+      toast.success('Tarea actualizada')
+    } catch {
+      toast.error('Error al actualizar la tarea')
+    }
   }
 
   const handleCompleteSave = (saved) => {
     setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
     setCompletingTask(null)
+    toast.success('¡Tarea completada!')
   }
 
   const handleStatusSave = (saved) => {
     setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
     setStatusTask(null)
+    toast.success('Estado actualizado')
   }
 
   const filtered = search

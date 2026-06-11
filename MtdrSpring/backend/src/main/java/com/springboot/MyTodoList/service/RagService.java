@@ -83,7 +83,7 @@ public class RagService {
         if (rows.isEmpty() || rows.get(0).get("emb") == null) {
             throw new IllegalStateException("No se pudo generar el embedding de la pregunta");
         }
-        String embeddingJson = mapper.writeValueAsString(rows.get(0).get("emb"));
+        String embeddingJson = String.valueOf(rows.get(0).get("emb"));
         return "TO_VECTOR('" + embeddingJson + "', " + EMBEDDING_DIM + ", FLOAT32)";
     }
 

@@ -38,6 +38,15 @@ const CustomTooltip = ({ active, payload, label, unit = '' }) => {
   )
 }
 
+const median = (arr) => {
+  if (!arr.length) return 0
+  const sorted = [...arr].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : +((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)
+}
+
 export default function Analitica() {
   const [tareas,         setTareas]         = useState([])
   const [sprints,        setSprints]        = useState([])
@@ -46,6 +55,8 @@ export default function Analitica() {
   const [loading,        setLoading]        = useState(true)
   const [refreshKey,     setRefreshKey]     = useState(0)
   const [filterProyecto, setFilterProyecto] = useState('ALL')
+  const [filterSprint,   setFilterSprint]   = useState('ALL')
+  const [filterDev,      setFilterDev]      = useState('ALL')
 
   useEffect(() => {
     setLoading(true)
@@ -58,16 +69,7 @@ export default function Analitica() {
   const allDevs = usuarios.filter(u => ['Developer', 'Scrum Master', 'Product Owner'].includes(u.rol))
   const getName = (u) => (u.fullName || u.email || `Dev ${u.id}`).split(' ')[0]
 
-  // KPI summary (global)
-  const total       = tareas.length
-  const completadas = tareas.filter(t => t.estatus === 'Completado').length
-  const bloqueadas  = tareas.filter(t => t.estatus === 'Bloqueado').length
-  const tasaComp    = total > 0 ? Math.round((completadas / total) * 100) : 0
-  const avgHoras    = total > 0
-    ? (tareas.reduce((s, t) => s + (t.horasReales || 0), 0) / total).toFixed(1)
-    : 0
-
-  // graficas 1 y 2
+  // scope por proyecto
   const sprintsScope = (filterProyecto === 'ALL'
     ? sprints
     : sprints.filter(s => String(s.proyectoId) === filterProyecto)
@@ -77,16 +79,49 @@ export default function Analitica() {
     ? tareas
     : tareas.filter(t => String(t.proyectoId) === filterProyecto)
 
+  // scope por sprint y dev (para KPIs y gráficas)
+  const tareasFiltered = tareasScope
+    .filter(t => filterSprint === 'ALL' || String(t.sprintId) === filterSprint)
+    .filter(t => filterDev    === 'ALL' || String(t.asignadoA) === filterDev)
+
   // solo usuarios con al menos una tarea en el scope actual
   const devsScope = allDevs.filter(dev =>
     tareasScope.some(t => Number(t.asignadoA) === Number(dev.id))
   ).slice(0, 8)
 
+  // ── 6 KPIs mandatory ──────────────────────────────────────────
+  const total       = tareasFiltered.length
+  const completadas = tareasFiltered.filter(t => t.estatus === 'Completado').length
+  const bloqueadas  = tareasFiltered.filter(t => t.estatus === 'Bloqueado').length
+  const tasaComp    = total > 0 ? Math.round((completadas / total) * 100) : 0
+
+  const totalRealHours = tareasFiltered.reduce((s, t) => s + (t.horasReales || 0), 0)
+
+  const devsConTareas = allDevs.filter(dev =>
+    tareasFiltered.some(t => Number(t.asignadoA) === Number(dev.id))
+  )
+  const numDevs = devsConTareas.length || 1
+
+  const avgTaskDev  = +(completadas / numDevs).toFixed(1)
+  const avgHoursDev = +(totalRealHours / numDevs).toFixed(1)
+
+  const tasksPerDev = devsConTareas.map(dev =>
+    tareasFiltered.filter(t => Number(t.asignadoA) === Number(dev.id) && t.estatus === 'Completado').length
+  )
+  const hoursPerDev = devsConTareas.map(dev =>
+    tareasFiltered.filter(t => Number(t.asignadoA) === Number(dev.id))
+                  .reduce((s, t) => s + (t.horasReales || 0), 0)
+  )
+  const medianTaskDev  = median(tasksPerDev)
+  const medianHoursDev = median(hoursPerDev)
+
+  const avgHoras = total > 0 ? (totalRealHours / total).toFixed(1) : 0
+
   //tareas completadas por usuario/sprint
   const tareasCompletadasData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
-      row[getName(dev)] = tareasScope.filter(
+      row[getName(dev)] = tareasFiltered.filter(
         t => t.sprintId === sprint.id &&
              Number(t.asignadoA) === Number(dev.id) &&
              t.estatus === 'Completado'
@@ -99,7 +134,7 @@ export default function Analitica() {
   const spData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
-      row[getName(dev)] = tareasScope
+      row[getName(dev)] = tareasFiltered
         .filter(t => t.sprintId === sprint.id &&
                      Number(t.asignadoA) === Number(dev.id) &&
                      t.estatus === 'Completado')
@@ -108,20 +143,20 @@ export default function Analitica() {
     return row
   }).filter(row => devsScope.some(d => row[getName(d)] > 0))
 
-  //grafica de pie - estado de tareas 
+  //grafica de pie - estado de tareas
   const statusPie = [
-    { name: 'Completado',  value: tareasScope.filter(t => t.estatus === 'Completado').length,  color: '#7A8C5A' },
-    { name: 'En Progreso', value: tareasScope.filter(t => t.estatus === 'En Progreso').length, color: '#374151' },
-    { name: 'Backlog',     value: tareasScope.filter(t => t.estatus === 'Backlog').length,     color: '#94A3B8' },
-    { name: 'Bloqueado',   value: tareasScope.filter(t => t.estatus === 'Bloqueado').length,   color: '#A85550' },
+    { name: 'Completado',  value: tareasFiltered.filter(t => t.estatus === 'Completado').length,  color: '#7A8C5A' },
+    { name: 'En Progreso', value: tareasFiltered.filter(t => t.estatus === 'En Progreso').length, color: '#374151' },
+    { name: 'Backlog',     value: tareasFiltered.filter(t => t.estatus === 'Backlog').length,     color: '#94A3B8' },
+    { name: 'Bloqueado',   value: tareasFiltered.filter(t => t.estatus === 'Bloqueado').length,   color: '#A85550' },
   ].filter(d => d.value > 0)
 
-  // horas reales por usuario — respeta el filtro de proyecto
+  // horas reales por usuario — respeta todos los filtros
   const devsAllKeys = devsScope.map(getName)
   const horasXSprintData = sprintsScope.map(sprint => {
     const row = { sprint: sprint.nombre }
     devsScope.forEach(dev => {
-      row[getName(dev)] = tareasScope
+      row[getName(dev)] = tareasFiltered
         .filter(t => t.sprintId === sprint.id && Number(t.asignadoA) === Number(dev.id))
         .reduce((s, t) => s + (t.horasReales || 0), 0)
     })
@@ -178,21 +213,59 @@ export default function Analitica() {
         </button>
       </div>
 
-      {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        {[
-          { value: total,          label: 'Tareas totales',       sub: 'Registradas en el sistema',              color: 'var(--navy)' },
-          { value: `${tasaComp}%`, label: 'Tasa de completitud',  sub: `${completadas} de ${total} finalizadas`, color: '#7A8C5A' },
-          { value: sprints.length, label: 'Sprints totales',      sub: 'En todos los proyectos',                 color: 'var(--accent)' },
-          { value: `${avgHoras}h`, label: 'Horas prom./tarea',    sub: 'Promedio de horas reales',               color: '#A85550' },
-        ].map(({ value, label, sub, color }) => (
-          <Card key={label} style={{ textAlign: 'center', padding: '18px 14px' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginTop: 6 }}>{label}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{sub}</div>
-          </Card>
-        ))}
-      </div>
+      {/* ── Dashboard 1 KPI — formato mandatory ── */}
+      <Card style={{ marginBottom: 24, padding: '16px 20px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 14 }}>
+          Análisis de Tasks / Hours
+        </div>
+
+        {/* fila de 6 métricas + 2 filtros */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr) auto auto', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          {[
+            { label: 'Completed Tasks',   value: completadas,      color: 'var(--navy)' },
+            { label: 'Total Real Hours',  value: `${totalRealHours}h`, color: 'var(--navy)' },
+            { label: 'Avg Task/Dev',      value: avgTaskDev,       color: 'var(--navy)' },
+            { label: 'Avg Hours/Dev',     value: `${avgHoursDev}h`, color: 'var(--navy)' },
+            { label: 'Median Task/Dev',   value: medianTaskDev,    color: 'var(--navy)' },
+            { label: 'Median Hours/Dev',  value: `${medianHoursDev}h`, color: 'var(--navy)' },
+          ].map(({ label, value, color }, i) => (
+            <div key={label} style={{
+              padding: '12px 14px', textAlign: 'center',
+              borderRight: '1px solid var(--border)',
+              background: i % 2 === 0 ? 'white' : '#FAFAFA',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 4, whiteSpace: 'nowrap' }}>{label}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
+            </div>
+          ))}
+
+          {/* Filtro 1: All Sprints */}
+          <div style={{ padding: '10px 12px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, background: '#F8F9FB' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Sprint</div>
+            <select
+              value={filterSprint}
+              onChange={e => setFilterSprint(e.target.value)}
+              style={{ height: 28, padding: '0 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, cursor: 'pointer', outline: 'none', background: 'white', color: 'var(--navy)', minWidth: 100 }}
+            >
+              <option value="ALL">All Sprints</option>
+              {sprintsScope.map(s => <option key={s.id} value={String(s.id)}>{s.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* Filtro 2: All Devs */}
+          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, background: '#F8F9FB' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Dev</div>
+            <select
+              value={filterDev}
+              onChange={e => setFilterDev(e.target.value)}
+              style={{ height: 28, padding: '0 6px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, cursor: 'pointer', outline: 'none', background: 'white', color: 'var(--navy)', minWidth: 100 }}
+            >
+              <option value="ALL">All Devs</option>
+              {devsScope.map(d => <option key={d.id} value={String(d.id)}>{getName(d)}</option>)}
+            </select>
+          </div>
+        </div>
+      </Card>
 
       {loading && (
         <div style={{ padding: 60, textAlign: 'center', color: 'var(--muted)' }}>Cargando datos…</div>
@@ -221,10 +294,9 @@ export default function Analitica() {
             )}
           </div>
 
-          {/* primera columna */}
+          {/* fila 1 — Tasks y Story Points */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-            {/* tareas completadas por dev/sprint */}
             <SECTION
               title="Tareas completadas por desarrollador / sprint"
               subtitle="Análisis comparativo: cuántas tareas terminó cada developer en cada sprint."
@@ -247,7 +319,6 @@ export default function Analitica() {
               )}
             </SECTION>
 
-            {/* Story Points completados por dev/sprint */}
             <SECTION
               title="Story Points completados por desarrollador / sprint"
               subtitle="Contribución individual: cuántos story points completó cada developer en cada sprint."
@@ -271,10 +342,9 @@ export default function Analitica() {
             </SECTION>
           </div>
 
-          {/* segunda columna */}
+          {/* fila 2 — Horas y distribución */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-            {/* Horas reales por usuario/sprint - todos los sprints */}
             <SECTION
               title="Horas reales por desarrollador / sprint"
               subtitle="Total de horas reales registradas por cada desarrollador en todos los sprints."
@@ -326,7 +396,7 @@ export default function Analitica() {
                       </div>
                     ))}
                     <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 6, marginTop: 2 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total: <strong style={{ color: 'var(--navy)' }}>{tareasScope.length}</strong> tareas</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Total: <strong style={{ color: 'var(--navy)' }}>{tareasFiltered.length}</strong> tareas</div>
                     </div>
                   </div>
                 </div>

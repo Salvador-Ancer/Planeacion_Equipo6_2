@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import { proyectosApi, tareasApi, sprintsApi } from '../services/api'
@@ -294,8 +295,7 @@ export default function Projects() {
     setProjects(prev => prev.filter(p => p.id !== deleteTarget.id))
     const nombre = deleteTarget.nombre
     setDeleteTarget(null)
-    setSuccessMsg(`El proyecto "${nombre}" fue eliminado correctamente.`)
-    setTimeout(() => setSuccessMsg(''), 4000)
+    toast.success(`Proyecto "${nombre}" eliminado`)
   }
 
   const handleSave = (saved) => {
@@ -304,6 +304,7 @@ export default function Projects() {
         ? prev.map(p => p.id === saved.id ? { ...p, ...saved } : p)
         : [...prev, saved]
     )
+    toast.success(modal?.id ? 'Proyecto actualizado' : 'Proyecto creado correctamente')
     setModal(null)
   }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import { sprintsApi, proyectosApi, tareasApi } from '../services/api'
 
 const SPRINT_STATUS = {
@@ -402,9 +403,13 @@ export default function Sprints() {
     if (!delTarget) return
     try {
       await sprintsApi.delete(delTarget.id)
+      toast.success(`Sprint "${delTarget.nombre}" eliminado`)
       setDelTarget(null)
       load()
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      toast.error('Error al eliminar el sprint')
+      console.error(e)
+    }
   }
 
   //resumen
@@ -496,7 +501,7 @@ export default function Sprints() {
           proyectos={proyectos}
           allSprints={sprints}
           projectLocked={modal.preselected && !modal.sprint?.id}
-          onSave={() => { setModal(null); load() }}
+          onSave={() => { setModal(null); load(); toast.success(modal?.sprint?.id ? 'Sprint actualizado' : 'Sprint creado correctamente') }}
           onClose={() => setModal(null)}
         />
       )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import TaskCard from '../components/tasks/TaskCard'
 import TaskForm from '../components/tasks/TaskForm'
 import Button from '../components/common/Button'
@@ -30,21 +31,33 @@ export default function Tasks() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleUpdate = (updated) => {
-    tareasApi.update(updated.id, updated).catch(() => {})
-    setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+  const handleUpdate = async (updated) => {
+    try {
+      await tareasApi.update(updated.id, updated)
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+      toast.success('Tarea actualizada')
+    } catch {
+      toast.error('Error al actualizar la tarea')
+    }
   }
 
-  const handleDelete = (id) => {
-    tareasApi.delete(id).catch(() => {})
-    setTasks(prev => prev.filter(t => t.id !== id))
+  const handleDelete = async (id) => {
+    try {
+      await tareasApi.delete(id)
+      setTasks(prev => prev.filter(t => t.id !== id))
+      toast.success('Tarea eliminada')
+    } catch {
+      toast.error('Error al eliminar la tarea')
+    }
   }
 
   const handleSave = (saved) => {
     if (editTask?.id) {
       setTasks(prev => prev.map(t => t.id === saved.id ? saved : t))
+      toast.success('Tarea actualizada')
     } else {
       setTasks(prev => [...prev, saved])
+      toast.success('Tarea creada correctamente')
     }
     setShowForm(false)
     setEditTask(null)
