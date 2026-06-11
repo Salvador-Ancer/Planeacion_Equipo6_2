@@ -132,7 +132,7 @@ export default function TaskForm({ task, onSuccess, onCancel }) {
         ...form,
         proyectoId:      selectedProyecto ? Number(selectedProyecto)  : null,
         sprintId:        selectedSprint   ? Number(selectedSprint)    : null,
-        asignadoA:       form.asignadoA   ? Number(form.asignadoA)    : null,
+        asignadoA:       form.asignadoA   || null,
         storyPoints:     form.storyPoints     ? Number(form.storyPoints)     : null,
         horasEstimadas:  form.horasEstimadas  ? Number(form.horasEstimadas)  : null,
         fechaVencimiento: form.fechaVencimiento || null,
