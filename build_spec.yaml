@@ -222,6 +222,9 @@ steps:
         echo "ERROR: Peak results not found"
         exit 1
       fi
+      echo "--- Errores por endpoint (label) y codigo de respuesta ---"
+      awk -F',' 'NR>1 && $8=="false" { print $3, $4 }' $RESULTS | sort | uniq -c | sort -rn
+      echo "-----------------------------------------------------------"
       awk -F',' '
         NR>1 { total++; if ($8=="false") errors++ }
         END {
