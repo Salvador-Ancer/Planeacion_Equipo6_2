@@ -59,7 +59,13 @@ spec:
             - name: OCI_REGION
               value: "%OCI_REGION%"
             - name: dbpassword
-              value: "gofnov-wuqzi9-zeNqex"
+              value: "%DB_PASSWORD%"
+            - name: groq.api.key
+              value: "%GROQ_API_KEY%"
+            - name: telegram.bot.token
+              value: "%TELEGRAM_BOT_TOKEN%"
+            - name: deepseek.api.key
+              value: "%DEEPSEEK_API_KEY%"
             - name: ui_username
               value: "%UI_USERNAME%"
             - name: ui_password
