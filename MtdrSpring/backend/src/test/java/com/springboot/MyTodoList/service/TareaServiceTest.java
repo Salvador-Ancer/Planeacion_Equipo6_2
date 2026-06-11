@@ -31,6 +31,9 @@ public class TareaServiceTest {
     @Mock
     private TareaRepository tareaRepository;
 
+    @Mock
+    private EmbeddingSyncService embeddingSyncService;
+
     // Objeto real que vamos a testear, con el mock inyectado
     @InjectMocks
     private TareaService tareaService;
