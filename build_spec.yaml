@@ -144,9 +144,10 @@ steps:
       done
       HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://$LB_IP/auth/register \
         -H "Content-Type: application/json" \
-        -d '{"email":"pm@test.com","password":"Test1234!","fullName":"PM","rol":"Manager"}')
+        -d '{"email":"pm@test.com","password":"Test1234!","fullName":"PM","rol":"Scrum Master"}')
       echo "Register pm@test.com: HTTP $HTTP_CODE"
       echo "Test user seeding complete"
+
 
   - type: Command
     name: "Run JMeter - Baseline (10 users)"
