@@ -482,7 +482,7 @@ Run (non-GUI):
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{"nombre":"LoadTest-T${__threadNum}-${__Random(1,9999,)}","prioridad":"Media","estatus":"Pendiente","horasEstimadas":2.0,"storyPoints":3,"sprintId":${write_sprintId},"proyectoId":${write_proyectoId},"asignadoA":${write_userId},"creadoPor":${write_userId},"descripcion":"Created by JMeter load test"}</stringProp>
+                <stringProp name="Argument.value">{"nombre":"LoadTest-T${__threadNum}-${__Random(1,9999,)}","prioridad":"Media","estatus":"Backlog","horasEstimadas":2.0,"storyPoints":3,"sprintId":${write_sprintId},"proyectoId":${write_proyectoId},"asignadoA":${write_userId},"creadoPor":${write_userId},"descripcion":"Created by JMeter load test"}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
