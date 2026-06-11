@@ -23,13 +23,14 @@ DELETE FROM ADMIN.USUARIOS;
 COMMIT;
 
 -- ---------------------------------------------------------------
--- 2) EQUIPO DE 5 PERSONAS
+-- 2) EQUIPO DE 5 PERSONAS + 1 ADMIN
 -- ---------------------------------------------------------------
 INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (1, 'Ana Torres',      'ana.torres@demo.com',     'Scrum Master');
 INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (2, 'Luis Hernandez',  'luis.hernandez@demo.com', 'Developer');
 INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (3, 'Maria Gomez',     'maria.gomez@demo.com',    'Developer');
 INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (4, 'Carlos Ramirez',  'carlos.ramirez@demo.com', 'Developer');
 INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (5, 'Sofia Mendoza',   'sofia.mendoza@demo.com',  'Product Owner');
+INSERT INTO ADMIN.USUARIOS (USER_ID, FULL_NAME, EMAIL, ROL) VALUES (6, 'Pedro Alvarez',   'pedro.alvarez@demo.com',  'Admin');
 
 -- Credenciales: password para todos = Demo1234!
 INSERT INTO ADMIN.CREDENCIALES (HASH_PASSWORD, EMAIL, FECHA_CREACION, ACTIVO, USER_ID)
@@ -42,6 +43,8 @@ INSERT INTO ADMIN.CREDENCIALES (HASH_PASSWORD, EMAIL, FECHA_CREACION, ACTIVO, US
 VALUES ('$2b$12$ATQiQMSiqObLnwrN164vGei4Fa88LYBo3Bs3MLKw7IbonBDqCJvtO', 'carlos.ramirez@demo.com', SYSDATE, 1, 4);
 INSERT INTO ADMIN.CREDENCIALES (HASH_PASSWORD, EMAIL, FECHA_CREACION, ACTIVO, USER_ID)
 VALUES ('$2b$12$ATQiQMSiqObLnwrN164vGei4Fa88LYBo3Bs3MLKw7IbonBDqCJvtO', 'sofia.mendoza@demo.com', SYSDATE, 1, 5);
+INSERT INTO ADMIN.CREDENCIALES (HASH_PASSWORD, EMAIL, FECHA_CREACION, ACTIVO, USER_ID)
+VALUES ('$2b$12$ATQiQMSiqObLnwrN164vGei4Fa88LYBo3Bs3MLKw7IbonBDqCJvtO', 'pedro.alvarez@demo.com', SYSDATE, 1, 6);
 
 -- ---------------------------------------------------------------
 -- 3) PROYECTO
